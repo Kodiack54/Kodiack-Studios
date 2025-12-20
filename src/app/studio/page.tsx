@@ -9,9 +9,11 @@
 import { useState, useEffect, useContext } from 'react';
 import { PageTitleContext, PageActionsContext } from '@/app/layout';
 import { useDeveloper } from '@/app/contexts/DeveloperContext';
+import { useUser } from '@/app/settings/UserContext';
 import { DraggableSidebar, SidebarItem } from './components';
 import BrowserPage from './browser/BrowserPage';
 import ClaudeTerminal from './terminal/ClaudeTerminal';
+import { Plug, PlugZap } from 'lucide-react';
 import type { Project, Environment } from '@/types';
 import { ENVIRONMENTS } from '@/types';
 
@@ -33,7 +35,8 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
 export default function StudioPage() {
   const setPageTitle = useContext(PageTitleContext);
   const setPageActions = useContext(PageActionsContext);
-  const { selectedTeam, connectionStatus } = useDeveloper();
+  const { selectedTeam, connectionStatus, connect, disconnect } = useDeveloper();
+  const { user } = useUser();
   const [activePanel, setActivePanel] = useState<string | null>('browser');
 
   // Project and environment state
@@ -145,28 +148,60 @@ export default function StudioPage() {
 
         {/* Right: Claude Terminal area */}
         <div className="w-[400px] bg-gray-850 flex flex-col flex-shrink-0">
+          {/* Blue header bar with Connect button */}
+          <div className="h-10 flex items-center justify-between px-3" style={{ background: 'linear-gradient(to right, #3B82F6, #06B6D4)' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-white">AI Workers</span>
+              <span className="text-xs text-white/70">({selectedTeam.portRange})</span>
+            </div>
+
+            {/* Connect/Disconnect Button */}
+            {connectionStatus === 'connected' ? (
+              <button
+                onClick={disconnect}
+                className="flex items-center gap-2 px-3 py-1 bg-green-500/30 text-white border border-white/30 rounded-lg hover:bg-green-500/40 transition-colors"
+              >
+                <PlugZap className="w-4 h-4" />
+                <span className="text-sm font-medium">Connected</span>
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              </button>
+            ) : connectionStatus === 'connecting' ? (
+              <button
+                disabled
+                className="flex items-center gap-2 px-3 py-1 bg-yellow-500/30 text-white border border-white/30 rounded-lg cursor-wait"
+              >
+                <Plug className="w-4 h-4 animate-pulse" />
+                <span className="text-sm font-medium">Connecting...</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => user?.id && connect(user.id)}
+                disabled={!user?.id}
+                className="flex items-center gap-2 px-3 py-1 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50"
+              >
+                <Plug className="w-4 h-4" />
+                <span className="text-sm font-medium">Connect</span>
+              </button>
+            )}
+          </div>
+
+          {/* Terminal content */}
           {connectionStatus === 'connected' ? (
             <ClaudeTerminal
               port={selectedTeam.basePort}
               projectPath={selectedProject?.server_path || '/var/www/NextBid_Dev/dev-studio-5000'}
             />
           ) : (
-            <div className="flex-1 flex flex-col">
-              <div className="h-10 bg-gray-800 border-b border-gray-700 flex items-center px-3">
-                <span className="text-sm font-medium text-white">AI Worker Terminal</span>
-                <span className="ml-2 w-2 h-2 rounded-full bg-gray-500" title="Not connected" />
-              </div>
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center px-6">
-                  <div className="text-4xl mb-4">🔌</div>
-                  <h3 className="text-white font-medium mb-2">Not Connected</h3>
-                  <p className="text-gray-400 text-sm mb-4">
-                    Click the <span className="text-cyan-400 font-medium">Connect</span> button in the navigation bar to start your AI worker session.
-                  </p>
-                  <p className="text-gray-500 text-xs">
-                    Selected: {selectedTeam.label} ({selectedTeam.portRange})
-                  </p>
-                </div>
+            <div className="flex-1 flex items-center justify-center bg-gray-900">
+              <div className="text-center px-6">
+                <div className="text-4xl mb-4">🔌</div>
+                <h3 className="text-white font-medium mb-2">Not Connected</h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  Click <span className="text-cyan-400 font-medium">Connect</span> above to start your AI worker session.
+                </p>
+                <p className="text-gray-500 text-xs">
+                  {selectedTeam.label} ({selectedTeam.portRange})
+                </p>
               </div>
             </div>
           )}
