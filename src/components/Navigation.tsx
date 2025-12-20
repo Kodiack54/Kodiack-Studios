@@ -102,15 +102,10 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
       <nav className="bg-gray-800 shadow-lg">
         <div className="px-6">
           <div className="flex items-center justify-between">
-            {/* Left: Logo + Tabs */}
+            {/* Left: Title + Tabs */}
             <div className="flex items-end space-x-4">
-              {/* Logo - links to Dashboard (Universal Dashboard) */}
-              <Link href="/dashboard" className="flex items-center space-x-3 py-1 hover:opacity-80 transition-opacity">
-                <img
-                  src="/images/kodiack-logo.png"
-                  alt="Kodiack Studio"
-                  className="h-[70px] w-auto rounded"
-                />
+              {/* Title - links to Dashboard */}
+              <Link href="/dashboard" className="flex items-center py-3 hover:opacity-80 transition-opacity">
                 <div>
                   <div className="text-white font-bold text-xl leading-tight">Kodiack Studio</div>
                   <div className="text-gray-400 text-xs leading-tight">Games. Platforms. Systems.</div>
@@ -118,7 +113,7 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
               </Link>
 
               {/* Tab Navigation - aligned to bottom */}
-              <div className="hidden md:flex items-end space-x-1 ml-4 pb-0">
+              <div className="hidden md:flex items-end space-x-1 pb-0">
                 {tabs.map(tab => {
                   const isActive = activeTab === tab.id;
                   const isExternal = 'external' in tab && tab.external;
@@ -199,23 +194,7 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
       <div className="shadow-md" style={{ background: 'linear-gradient(to right, #3B82F6, #06B6D4)' }}>
         <div className="px-6 py-1">
           <div className="flex items-center">
-            {/* Left: Production Status Toggle (fixed width like DirectoryDropdown) */}
-            <div className="w-52 flex items-center justify-start">
-              <button
-                onClick={toggleServers}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/20 hover:bg-black/30 border border-black/30 transition-colors"
-              >
-                <Server className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">Production Status</span>
-                {showServers ? (
-                  <ChevronDown className="w-4 h-4 text-white/70" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-white/70" />
-                )}
-              </button>
-            </div>
-
-            {/* Center: Back button + Page title + Page actions */}
+            {/* Back button + Page title + Page actions */}
             <div className="flex-1 flex items-center space-x-3">
               {/* Back Button */}
               <button
