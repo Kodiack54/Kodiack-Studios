@@ -10,6 +10,8 @@ import ChatDropdown from './ChatDropdown';
 import AITeamChat from './AITeamChat';
 import { ProductionStatusContext } from '@/app/layout';
 import { useDeveloper, DEVELOPER_TEAMS } from '@/app/contexts/DeveloperContext';
+import { useUser } from '@/app/settings/UserContext';
+import { Plug, PlugZap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // Project definitions for the switcher
@@ -32,7 +34,8 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [selectedProject, setSelectedProject] = useState(projects[0]);
   const { showServers, toggleServers } = useContext(ProductionStatusContext);
-  const { selectedTeam, selectTeamById } = useDeveloper();
+  const { selectedTeam, selectTeamById, connectionStatus, connect, disconnect } = useDeveloper();
+  const { user } = useUser();
 
   // Tab navigation - exactly like MyKeystone style
   // Tabs: Servers / Dev Tools / HelpDesk / Calendar / Development
@@ -201,7 +204,10 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
               <select
                 value={selectedTeam.id}
                 onChange={(e) => selectTeamById(e.target.value)}
-                className="w-full bg-gray-800/80 text-white text-sm px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-white/30"
+                disabled={connectionStatus === 'connected'}
+                className={`w-full bg-gray-800/80 text-white text-sm px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-white/30 ${
+                  connectionStatus === 'connected' ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 {DEVELOPER_TEAMS.map(team => (
                   <option key={team.id} value={team.id}>
@@ -274,6 +280,39 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
                 })}
               </div>
             )}
+
+            {/* Far Right: Connect/Disconnect Button */}
+            <div className="ml-4">
+              {connectionStatus === 'connected' ? (
+                <button
+                  onClick={disconnect}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-green-500/20 text-green-300 border border-green-500/50 rounded-lg hover:bg-green-500/30 transition-colors"
+                  title={`Connected to ${selectedTeam.label} (${selectedTeam.portRange})`}
+                >
+                  <PlugZap className="w-4 h-4" />
+                  <span className="text-sm font-medium">Connected</span>
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                </button>
+              ) : connectionStatus === 'connecting' ? (
+                <button
+                  disabled
+                  className="flex items-center gap-2 px-4 py-1.5 bg-yellow-500/20 text-yellow-300 border border-yellow-500/50 rounded-lg cursor-wait"
+                >
+                  <Plug className="w-4 h-4 animate-pulse" />
+                  <span className="text-sm font-medium">Connecting...</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => user?.id && connect(user.id)}
+                  disabled={!user?.id}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-white/10 text-white border border-white/30 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+                  title={`Connect to ${selectedTeam.label} AI Workers`}
+                >
+                  <Plug className="w-4 h-4" />
+                  <span className="text-sm font-medium">Connect</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
