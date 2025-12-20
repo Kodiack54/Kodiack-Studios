@@ -200,9 +200,9 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
                 className="w-full bg-gray-800/80 text-white text-sm px-3 py-1.5 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-white/30"
                 defaultValue="dev1"
               >
-                <option value="dev1">Developer 1 (5410-5416)</option>
-                <option value="dev2">Developer 2 (5420-5426)</option>
-                <option value="dev3">Developer 3 (5430-5436)</option>
+                <option value="dev1">Dev 1 (5410-5416)</option>
+                <option value="dev2">Dev 2 (5420-5426)</option>
+                <option value="dev3">Dev 3 (5430-5436)</option>
               </select>
             </div>
 
