@@ -319,48 +319,65 @@ function BucketCounter({ name, count, prev }: BucketCounterProps) {
   );
 }
 
-// Session row component
+// Session row component - shows user, time range, source
 function SessionRow({ session }: { session: any }) {
-  const statusColors: Record<string, string> = {
-    capturing: 'text-blue-400',
-    dumped: 'text-blue-300',
-    scrubbing: 'text-purple-400',
-    flagged: 'text-purple-300',
-    categorizing: 'text-green-400',
-    complete: 'text-green-300',
+  // Format time range
+  const startTime = session.started_at ? formatTime(session.started_at) : '??:??';
+  const endTime = session.ended_at ? formatTime(session.ended_at) : 'ongoing';
+  const timeRange = `${startTime} - ${endTime}`;
+
+  // Get status color and stage
+  const getStage = () => {
+    if (session.categorized_by_susan) return { label: 'Done', color: 'text-green-400', bg: 'bg-green-900/20' };
+    if (session.scrubbed_by_jen) return { label: 'Susan', color: 'text-yellow-400', bg: 'bg-yellow-900/20' };
+    if (session.captured_by_chad) return { label: 'Jen', color: 'text-purple-400', bg: 'bg-purple-900/20' };
+    return { label: 'Chad', color: 'text-blue-400', bg: 'bg-blue-900/20' };
   };
+  const stage = getStage();
 
   return (
-    <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
-      <div className="flex items-center justify-between mb-2">
+    <div className={`p-3 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors ${stage.bg}`}>
+      {/* Top row: User and time range */}
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-200 truncate max-w-[200px]">
-            {session.source_name || session.source_type || 'Unknown'}
+          <span className="text-sm font-medium text-white">
+            {session.user_name || session.user_id || 'Unknown User'}
           </span>
-          <span className={`text-xs ${statusColors[session.status] || 'text-gray-400'}`}>
-            {session.status}
+          <span className={`text-xs px-1.5 py-0.5 rounded ${stage.color} bg-gray-800/50`}>
+            → {stage.label}
           </span>
         </div>
-        <span className="text-xs text-gray-500">
-          {formatTimeAgo(session.started_at)}
+        <span className="text-xs text-gray-400 font-mono">
+          {timeRange}
         </span>
       </div>
 
-      {/* Pipeline progress dots */}
-      <div className="flex items-center gap-1">
-        <PipelineDot done={session.captured_by_chad} label="C" title="Chad captured" />
-        <div className="w-3 h-px bg-gray-700" />
-        <PipelineDot done={session.scrubbed_by_jen} label="J" title="Jen scrubbed" />
-        <div className="w-3 h-px bg-gray-700" />
-        <PipelineDot done={session.categorized_by_susan} label="S" title="Susan categorized" />
-        {session.flags_found !== undefined && (
-          <span className="ml-2 text-xs text-gray-500">
-            {session.flags_found} flags
-          </span>
-        )}
+      {/* Bottom row: Source and pipeline dots */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          from: <span className="text-gray-400">{session.source_name || session.source_type || 'Unknown'}</span>
+        </span>
+        <div className="flex items-center gap-1">
+          <PipelineDot done={session.captured_by_chad} label="C" title="Chad captured" />
+          <div className="w-2 h-px bg-gray-700" />
+          <PipelineDot done={session.scrubbed_by_jen} label="J" title="Jen scrubbed" />
+          <div className="w-2 h-px bg-gray-700" />
+          <PipelineDot done={session.categorized_by_susan} label="S" title="Susan categorized" />
+          {session.flags_found !== undefined && session.flags_found > 0 && (
+            <span className="ml-1 text-[10px] text-purple-400">
+              +{session.flags_found}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
+}
+
+// Format time as HH:MM AM/PM
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function PipelineDot({ done, label, title }: { done?: boolean; label: string; title: string }) {
