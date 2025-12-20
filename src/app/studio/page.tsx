@@ -177,7 +177,7 @@ export default function StudioPage() {
               <button
                 onClick={() => user?.id && connect(user.id)}
                 disabled={!user?.id}
-                className="flex items-center gap-2 px-3 py-1 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-1 bg-gray-800 text-white border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
               >
                 <Plug className="w-4 h-4" />
                 <span className="text-sm font-medium">Connect</span>
