@@ -17,7 +17,7 @@ export const MIN_CONTENT_LENGTH = 20;
 // Dedup cooldown (ms) - should match CHAT_DEBOUNCE_MS
 export const DEDUP_COOLDOWN_MS = 1500;
 
-// Fallback timer for Susan briefing (ms) - needs to be long enough for Claude to fully load
+// Timer for Susan briefing (ms) - wait for Claude to fully load then send briefing
 export const BRIEFING_FALLBACK_MS = 25000;
 
 // Delay before showing messages after briefing (ms)

@@ -187,10 +187,12 @@ export default function StudioPage() {
 
           {/* Terminal content */}
           {connectionStatus === 'connected' ? (
-            <ClaudeTerminal
-              port={selectedTeam.basePort}
-              projectPath={selectedProject?.server_path || '/var/www/NextBid_Dev/dev-studio-5000'}
-            />
+            <div className="flex-1 min-h-0 flex flex-col">
+              <ClaudeTerminal
+                port={selectedTeam.basePort}
+                projectPath={selectedProject?.server_path || '/var/www/NextBid_Dev/dev-studio-5000'}
+              />
+            </div>
           ) : (
             <div className="flex-1 flex items-center justify-center bg-gray-900">
               <div className="text-center px-6">

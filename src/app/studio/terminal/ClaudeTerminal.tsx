@@ -202,31 +202,45 @@ export function ClaudeTerminal({
         ws.send(JSON.stringify({ type: 'resize', cols: xtermRef.current.cols, rows: xtermRef.current.rows }));
       }
 
-      // Start Claude Code after 2 seconds
+      // Start Claude Code: type "claude", wait, press Enter, wait for load, then send briefing
       setTimeout(() => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'input', data: 'claude\r' }));
+          // Step 1: Type "claude" (without Enter)
+          ws.send(JSON.stringify({ type: 'input', data: 'claude' }));
+
+          // Step 2: After 500ms, press Enter to execute
+          setTimeout(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'input', data: '\r' }));
+
+              // Step 3: Wait for Claude to fully load, then send Susan briefing
+              setTimeout(() => {
+                const ctx = susanContextRef.current;
+                if (!contextSentRef.current && ws.readyState === WebSocket.OPEN) {
+                  contextSentRef.current = true;
+                  briefingSentToClaudeRef.current = true;
+
+                  if (ctx?.greeting) {
+                    console.log('[ClaudeTerminal] Sending Susan briefing to Claude');
+                    if (xtermRef.current) {
+                      xtermRef.current.writeln('\x1b[35m\n📚 Sending memory briefing to Claude...\x1b[0m');
+                    }
+                    const contextMessage = buildContextPrompt(ctx);
+                    sendChunkedMessage(ws, contextMessage, () => {
+                      sendMultipleEnters(ws);
+                    });
+                  } else {
+                    console.log('[ClaudeTerminal] No Susan context available, sending /start command');
+                    sendChunkedMessage(ws, '/start', () => {
+                      sendMultipleEnters(ws);
+                    });
+                  }
+                }
+              }, BRIEFING_FALLBACK_MS);
+            }
+          }, 500);
         }
       }, 2000);
-
-      // Fallback briefing timer
-      setTimeout(() => {
-        const ctx = susanContextRef.current;
-        if (!contextSentRef.current && ctx?.greeting && ws.readyState === WebSocket.OPEN && claudeCodeLoadedRef.current) {
-          console.log('[ClaudeTerminal] Fallback timer: sending Susan briefing');
-          contextSentRef.current = true;
-          briefingSentToClaudeRef.current = true;
-
-          if (xtermRef.current) {
-            xtermRef.current.writeln('\x1b[35m\n📚 Sending memory briefing to Claude...\x1b[0m');
-          }
-
-          const contextMessage = buildContextPrompt(ctx);
-          sendChunkedMessage(ws, contextMessage, () => {
-            sendMultipleEnters(ws);
-          });
-        }
-      }, BRIEFING_FALLBACK_MS);
 
       setTimeout(() => inputRef.current?.focus(), 100);
     };
@@ -255,38 +269,8 @@ export function ClaudeTerminal({
             }
           }
 
-          // Detect Claude ready and send Susan's briefing
-          const currentContext = susanContextRef.current;
-          if (!contextSentRef.current && currentContext?.greeting && claudeCodeLoadedRef.current) {
-            const isClaudeReady = cleanData.includes('What would you like') ||
-                                  cleanData.includes('How can I help') ||
-                                  cleanData.includes('What can I help') ||
-                                  cleanData.includes('help you with') ||
-                                  cleanData.includes('work on today') ||
-                                  cleanData.includes('assist you') ||
-                                  /[❯>›»]\s*$/.test(cleanData) ||
-                                  cleanData.includes('❯') ||
-                                  (cleanData.includes('Opus') && cleanData.includes('Claude'));
-
-            if (isClaudeReady) {
-              contextSentRef.current = true;
-              console.log('[ClaudeTerminal] Detected Claude ready, sending Susan briefing');
-
-              if (xtermRef.current) {
-                xtermRef.current.writeln('\x1b[35m\n📚 Sending memory briefing to Claude...\x1b[0m');
-              }
-
-              setTimeout(() => {
-                if (wsRef.current?.readyState === WebSocket.OPEN) {
-                  const contextMessage = buildContextPrompt(currentContext);
-                  briefingSentToClaudeRef.current = true;
-                  sendChunkedMessage(wsRef.current, contextMessage, () => {
-                    sendMultipleEnters(wsRef.current!);
-                  });
-                }
-              }, 500);
-            }
-          }
+          // Note: Susan briefing is now sent via timer (10s after connect)
+          // Detection removed for reliability
         } else if (msg.type === 'exit') {
           if (xtermRef.current) {
             xtermRef.current.writeln(`\x1b[33m[Process exited: ${msg.code}]\x1b[0m`);
@@ -425,30 +409,21 @@ export function ClaudeTerminal({
           {!connected && <span className="text-orange-400/50 text-xs">(connecting...)</span>}
         </div>
         <div className="px-2 py-2 bg-gray-800">
-          <div className="flex gap-2 items-end">
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (connected) sendInput();
-                }
-              }}
-              placeholder={connected ? "Type a message and press Enter... (Shift+Enter for new line)" : "Connecting to Claude..."}
-              rows={3}
-              disabled={!connected}
-              className="flex-1 bg-gray-900 border-2 border-orange-600 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <button
-              onClick={sendInput}
-              disabled={!connected || !inputValue.trim()}
-              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded text-sm font-medium h-fit"
-            >
-              Send
-            </button>
-          </div>
+          <textarea
+            ref={inputRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (connected) sendInput();
+              }
+            }}
+            placeholder={connected ? "Type a message and press Enter... (Shift+Enter for new line)" : "Connecting to Claude..."}
+            rows={4}
+            disabled={!connected}
+            className="w-full bg-gray-900 border-2 border-orange-600 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+          />
         </div>
       </div>
     </div>

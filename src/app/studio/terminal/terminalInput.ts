@@ -51,11 +51,13 @@ export function sendChunkedMessage(
 
 /**
  * Send multiple Enter keystrokes to ensure message submission
+ * Waits 1 second first, then sends multiple enters
  */
 export function sendMultipleEnters(ws: WebSocket, onComplete?: () => void): void {
   if (ws.readyState !== WebSocket.OPEN) return;
 
-  [100, 300, 500].forEach((delay, index, arr) => {
+  // Wait 1 second for Claude to process the message, then send enters
+  [1000, 1200, 1500, 2000].forEach((delay, index, arr) => {
     setTimeout(() => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'input', data: '\r' }));
