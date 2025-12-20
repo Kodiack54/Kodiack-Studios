@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  host: 'localhost',
+  host: '127.0.0.1',
   port: 5432,
   database: 'kodiack_ai',
   user: 'postgres',
