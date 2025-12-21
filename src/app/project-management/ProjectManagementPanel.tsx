@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, ArrowLeft, Server, ChevronRight, Settings, ChevronUp, ChevronDown, CheckSquare, BookOpen, Clock, AlertCircle } from 'lucide-react';
+import { Plus, ArrowLeft, Server, ChevronRight, Settings, ChevronUp, ChevronDown, CheckSquare, BookOpen, Clock, AlertCircle, Building2 } from 'lucide-react';
 import { Project, TabType, TABS } from './types';
+import { useClient } from '@/app/contexts/ClientContext';
 import ProjectHeader from './components/ProjectHeader';
 import ProjectTabs from './components/ProjectTabs';
 import ProjectForm from './components/ProjectForm';
@@ -31,13 +32,19 @@ interface ProjectManagementPanelProps {
 }
 
 export default function ProjectManagementPanel({ onProjectsChange }: ProjectManagementPanelProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const { selectedClient } = useClient();
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('todos');
   const [isLoading, setIsLoading] = useState(true);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [projectSummaries, setProjectSummaries] = useState<Record<string, ProjectSummary>>({});
+
+  // Filter projects by selected client
+  const projects = selectedClient
+    ? allProjects.filter(p => p.client_id === selectedClient.id)
+    : allProjects;
 
   useEffect(() => {
     fetchProjects();
@@ -54,7 +61,7 @@ export default function ProjectManagementPanel({ onProjectsChange }: ProjectMana
       const response = await fetch('/project-management/api/projects');
       const data = await response.json();
       if (data.success) {
-        setProjects(data.projects);
+        setAllProjects(data.projects);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -256,7 +263,15 @@ export default function ProjectManagementPanel({ onProjectsChange }: ProjectMana
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-gray-400 text-sm">{projects.length} projects</span>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 text-sm">{projects.length} projects</span>
+          {selectedClient && (
+            <span className="px-2 py-0.5 bg-blue-600/20 text-blue-400 rounded text-xs flex items-center gap-1">
+              <Building2 className="w-3 h-3" />
+              {selectedClient.name}
+            </span>
+          )}
+        </div>
         <button
           onClick={handleAddProject}
           className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"

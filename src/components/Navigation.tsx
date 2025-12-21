@@ -142,7 +142,7 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
                     }
                   }}
                   disabled={clientsLoading}
-                  className="appearance-none bg-gray-700 text-white pl-10 pr-10 py-2 rounded-xl border border-gray-600 focus:ring-2 focus:ring-blue-500 cursor-pointer hover:bg-gray-600 disabled:opacity-50"
+                  className="appearance-none bg-gray-700 text-white pl-10 pr-10 py-2 rounded-xl border border-gray-600 focus:ring-2 focus:ring-blue-500 cursor-pointer hover:bg-gray-600 disabled:opacity-50 min-w-[200px]"
                 >
                   <option value="all">All Clients</option>
                   {clients.map(client => (
