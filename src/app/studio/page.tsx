@@ -15,6 +15,7 @@ import { DraggableSidebar, SidebarItem } from './components';
 import BrowserPage from './browser/BrowserPage';
 import ClaudeTerminal from './terminal/ClaudeTerminal';
 import { SessionHubPage } from './session-hub';
+import ProjectManagementPanel from '../project-management/ProjectManagementPanel';
 import { Plug, PlugZap, Monitor } from 'lucide-react';
 import type { Project, Environment } from '@/types';
 import { ENVIRONMENTS } from '@/types';
@@ -289,6 +290,10 @@ export default function StudioPage() {
             />
           ) : activePanel === 'hub' ? (
             <SessionHubPage teamBasePort={selectedTeam.basePort} />
+          ) : activePanel === 'projects' ? (
+            <div className="flex-1 overflow-auto p-4">
+              <ProjectManagementPanel />
+            </div>
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-600 text-sm">
               {activePanel ? `${activePanel} panel - coming soon` : 'Select a panel from the sidebar'}

@@ -32,7 +32,7 @@ export default function TablesTab({ projectPath, tablePrefix }: TablesTabProps) 
       const params = new URLSearchParams();
       if (tablePrefix) params.set('prefix', tablePrefix);
 
-      const response = await fetch(`/project-management/api/susan/tables?${params.toString()}`);
+      const response = await fetch(`/api/susan/tables?${params.toString()}`);
       const data = await response.json();
       if (data.success) {
         setTables(data.tables || []);
@@ -46,7 +46,7 @@ export default function TablesTab({ projectPath, tablePrefix }: TablesTabProps) 
 
   const fetchTableColumns = async (tableName: string) => {
     try {
-      const response = await fetch(`/project-management/api/susan/table/${tableName}/columns`);
+      const response = await fetch(`/api/susan/table/${tableName}/columns`);
       const data = await response.json();
       if (data.success) {
         setTables(prev => prev.map(t =>
