@@ -43,7 +43,7 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('/api/clients');
+      const response = await fetch('/project-management/api/clients');
       const data = await response.json();
       if (data.success) {
         setClients(data.clients);
@@ -75,7 +75,7 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
         port_prod: formData.port_prod ? parseInt(formData.port_prod) : null,
       };
 
-      const url = project ? `/api/projects/${project.id}` : '/api/projects';
+      const url = project ? `/api/projects/${project.id}` : '/project-management/api/projects';
       const method = project ? 'PATCH' : 'POST';
 
       const response = await fetch(url, {

@@ -50,7 +50,7 @@ export default function TodosTab({ projectPath, projectId }: TodosTabProps) {
   const fetchProjectPaths = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/project-paths?project_id=${projectId}`);
+      const response = await fetch(`/project-management/api/project-paths?project_id=${projectId}`);
       const data = await response.json();
       if (data.success) {
         setProjectPaths(data.paths || []);
@@ -72,7 +72,7 @@ export default function TodosTab({ projectPath, projectId }: TodosTabProps) {
     setIsLoading(true);
     try {
       const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-      const response = await fetch(`/api/clair/todos/${cleanPath}`);
+      const response = await fetch(`/project-management/api/clair/todos/${cleanPath}`);
       const data = await response.json();
       if (data.success) {
         setFolders(data.folders || {});
@@ -93,7 +93,7 @@ export default function TodosTab({ projectPath, projectId }: TodosTabProps) {
     setIsScanning(true);
     try {
       const cleanPath = selectedPath.path.startsWith('/') ? selectedPath.path.slice(1) : selectedPath.path;
-      await fetch(`/api/clair/todos/${cleanPath}/scan`, { method: 'POST' });
+      await fetch(`/project-management/api/clair/todos/${cleanPath}/scan`, { method: 'POST' });
       await fetchTodos(selectedPath.path);
     } catch (error) {
       console.error('Error rescanning:', error);
@@ -137,12 +137,12 @@ export default function TodosTab({ projectPath, projectId }: TodosTabProps) {
 
     try {
       await Promise.all([
-        fetch('/api/project-paths', {
+        fetch('/project-management/api/project-paths', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: currentFolder.id, sort_order: swapFolder.sort_order || swapIndex }),
         }),
-        fetch('/api/project-paths', {
+        fetch('/project-management/api/project-paths', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: swapFolder.id, sort_order: currentFolder.sort_order || currentIndex }),

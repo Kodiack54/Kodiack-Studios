@@ -93,7 +93,7 @@ export default function KnowledgeTab({ projectPath, projectId }: KnowledgeTabPro
 
   const fetchProjectPaths = async () => {
     try {
-      const response = await fetch(`/api/project-paths?project_id=${projectId}`);
+      const response = await fetch(`/project-management/api/project-paths?project_id=${projectId}`);
       const data = await response.json();
       if (data.success) {
         setProjectPaths(data.paths || []);
@@ -123,8 +123,8 @@ export default function KnowledgeTab({ projectPath, projectId }: KnowledgeTabPro
     setProjectPaths(newPaths);
     try {
       await Promise.all([
-        fetch('/api/project-paths', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentFolder.id, sort_order: swapFolder.sort_order || swapIndex }) }),
-        fetch('/api/project-paths', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: swapFolder.id, sort_order: currentFolder.sort_order || currentIndex }) }),
+        fetch('/project-management/api/project-paths', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentFolder.id, sort_order: swapFolder.sort_order || swapIndex }) }),
+        fetch('/project-management/api/project-paths', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: swapFolder.id, sort_order: currentFolder.sort_order || currentIndex }) }),
       ]);
     } catch (error) { console.error('Error moving folder:', error); fetchProjectPaths(); }
   };
@@ -133,7 +133,7 @@ export default function KnowledgeTab({ projectPath, projectId }: KnowledgeTabPro
     setIsLoading(true);
     try {
       const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-      const response = await fetch(`/api/clair/journal/${cleanPath}`);
+      const response = await fetch(`/project-management/api/clair/journal/${cleanPath}`);
       const data = await response.json();
       if (data.success) {
         setEntries(data.entries || []);
@@ -151,8 +151,8 @@ export default function KnowledgeTab({ projectPath, projectId }: KnowledgeTabPro
     try {
       const cleanPath = selectedPath.path.startsWith('/') ? selectedPath.path.slice(1) : selectedPath.path;
       const url = editingEntry
-        ? `/api/clair/journal/${cleanPath}/${editingEntry.id}`
-        : `/api/clair/journal/${cleanPath}`;
+        ? `/project-management/api/clair/journal/${cleanPath}/${editingEntry.id}`
+        : `/project-management/api/clair/journal/${cleanPath}`;
       const method = editingEntry ? 'PATCH' : 'POST';
 
       await fetch(url, {
@@ -171,7 +171,7 @@ export default function KnowledgeTab({ projectPath, projectId }: KnowledgeTabPro
     if (!confirm('Delete this entry?') || !selectedPath) return;
     try {
       const cleanPath = selectedPath.path.startsWith('/') ? selectedPath.path.slice(1) : selectedPath.path;
-      await fetch(`/api/clair/journal/${cleanPath}/${entry.id}`, { method: 'DELETE' });
+      await fetch(`/project-management/api/clair/journal/${cleanPath}/${entry.id}`, { method: 'DELETE' });
       fetchJournal(selectedPath.path);
     } catch (error) {
       console.error('Error deleting entry:', error);

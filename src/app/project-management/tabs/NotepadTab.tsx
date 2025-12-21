@@ -25,7 +25,7 @@ export default function NotepadTab({ projectPath }: NotepadTabProps) {
 
   const fetchNotes = async () => {
     try {
-      const response = await fetch(`/api/susan/notes?project=${encodeURIComponent(projectPath)}`);
+      const response = await fetch(`/project-management/api/susan/notes?project=${encodeURIComponent(projectPath)}`);
       const data = await response.json();
       if (data.success) {
         setNotes(data.notes || []);
@@ -43,8 +43,8 @@ export default function NotepadTab({ projectPath }: NotepadTabProps) {
 
     try {
       const url = editingNote
-        ? `/api/susan/note/${editingNote.id}`
-        : '/api/susan/note';
+        ? `/project-management/api/susan/note/${editingNote.id}`
+        : '/project-management/api/susan/note';
       const method = editingNote ? 'PATCH' : 'POST';
 
       const response = await fetch(url, {
@@ -81,7 +81,7 @@ export default function NotepadTab({ projectPath }: NotepadTabProps) {
   const handleDelete = async (note: Note) => {
     if (!confirm('Delete this note?')) return;
     try {
-      await fetch(`/api/susan/note/${note.id}`, { method: 'DELETE' });
+      await fetch(`/project-management/api/susan/note/${note.id}`, { method: 'DELETE' });
       fetchNotes();
     } catch (error) {
       console.error('Error deleting note:', error);

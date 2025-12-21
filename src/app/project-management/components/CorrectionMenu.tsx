@@ -79,7 +79,7 @@ export default function CorrectionMenu({ itemType, itemId, itemTitle, currentPro
         details.suggested_text = note;
       }
 
-      const response = await fetch('/api/clair/corrections', {
+      const response = await fetch('/project-management/api/clair/corrections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

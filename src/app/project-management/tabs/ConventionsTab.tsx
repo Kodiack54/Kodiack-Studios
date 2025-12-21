@@ -65,7 +65,7 @@ export default function ConventionsTab({ projectPath, projectId }: ConventionsTa
     try {
       const url = editingId 
         ? `/api/conventions/${editingId}` 
-        : '/api/conventions';
+        : '/project-management/api/conventions';
       
       const res = await fetch(url, {
         method: editingId ? 'PATCH' : 'POST',

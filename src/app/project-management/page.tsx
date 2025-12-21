@@ -59,7 +59,7 @@ function ProjectManagementContent() {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/projects');
+      const response = await fetch('/project-management/api/projects');
       const data = await response.json();
       if (data.success) {
         setProjects(data.projects);
@@ -113,12 +113,12 @@ function ProjectManagementContent() {
     // Swap sort_order values
     try {
       await Promise.all([
-        fetch('/api/projects', {
+        fetch('/project-management/api/projects', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: currentProject.id, sort_order: swapProject.sort_order }),
         }),
-        fetch('/api/projects', {
+        fetch('/project-management/api/projects', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: swapProject.id, sort_order: currentProject.sort_order }),

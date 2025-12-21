@@ -53,7 +53,7 @@ export default function StructureTab({ projectPath, projectId }: StructureTabPro
   const fetchProjectPaths = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/project-paths?project_id=${projectId}`);
+      const response = await fetch(`/project-management/api/project-paths?project_id=${projectId}`);
       const data = await response.json();
       if (data.success) {
         setProjectPaths(data.paths || []);
@@ -85,8 +85,8 @@ export default function StructureTab({ projectPath, projectId }: StructureTabPro
     setProjectPaths(newPaths);
     try {
       await Promise.all([
-        fetch('/api/project-paths', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentFolder.id, sort_order: swapFolder.sort_order || swapIndex }) }),
-        fetch('/api/project-paths', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: swapFolder.id, sort_order: currentFolder.sort_order || currentIndex }) }),
+        fetch('/project-management/api/project-paths', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: currentFolder.id, sort_order: swapFolder.sort_order || swapIndex }) }),
+        fetch('/project-management/api/project-paths', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: swapFolder.id, sort_order: currentFolder.sort_order || currentIndex }) }),
       ]);
     } catch (error) { console.error('Error moving folder:', error); fetchProjectPaths(); }
   };
@@ -96,7 +96,7 @@ export default function StructureTab({ projectPath, projectId }: StructureTabPro
     try {
       // Remove leading slash for URL path segments
       const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-      const response = await fetch(`/api/clair/structure/${cleanPath}?depth=4`);
+      const response = await fetch(`/project-management/api/clair/structure/${cleanPath}?depth=4`);
       const data = await response.json();
       if (data.success) {
         setTree(data.tree);
@@ -137,7 +137,7 @@ export default function StructureTab({ projectPath, projectId }: StructureTabPro
     if (!selectedPath) return;
     try {
       const cleanPath = selectedPath.path.startsWith('/') ? selectedPath.path.slice(1) : selectedPath.path;
-      await fetch(`/api/clair/structure/${cleanPath}/describe`, {
+      await fetch(`/project-management/api/clair/structure/${cleanPath}/describe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

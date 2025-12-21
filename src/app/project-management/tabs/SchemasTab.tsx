@@ -19,7 +19,7 @@ export default function SchemasTab({ projectPath }: SchemasTabProps) {
 
   const fetchSchemas = async () => {
     try {
-      const response = await fetch(`/api/susan/schemas?project=${encodeURIComponent(projectPath)}`);
+      const response = await fetch(`/project-management/api/susan/schemas?project=${encodeURIComponent(projectPath)}`);
       const data = await response.json();
       if (data.success) {
         setSchemas(data.schemas || []);
