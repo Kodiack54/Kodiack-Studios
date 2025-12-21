@@ -13,9 +13,17 @@ import type {
 
 // Service URLs - using the dev droplet (Global AI Team ports: 5400-5407)
 const DEV_DROPLET = '161.35.229.220';
-const CHAD_URL = `http://${DEV_DROPLET}:5401`;   // 01 - Transcription & Capture
-const JEN_URL = `http://${DEV_DROPLET}:5402`;    // 02 - Scrubbing & Signal Extraction
-const SUSAN_URL = `http://${DEV_DROPLET}:5403`;  // 03 - Classification & Sorting
+
+// Helper to get team URLs based on Chad port
+// Chad = base+1, Jen = base+2, Susan = base+3
+function getTeamUrls(chadPort?: number) {
+  const basePort = chadPort ? chadPort - 1 : 5400; // e.g., 5411 -> base 5410
+  return {
+    chad: `http://${DEV_DROPLET}:${basePort + 1}`,
+    jen: `http://${DEV_DROPLET}:${basePort + 2}`,
+    susan: `http://${DEV_DROPLET}:${basePort + 3}`,
+  };
+}
 
 const defaultChadStatus: ChadStatus = {
   isRunning: false,
@@ -59,14 +67,11 @@ interface UsePipelineStatusOptions {
 export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
   const { chadPort, isGlobal = false } = options;
 
-  // Determine which Chad URL(s) to use
-  const getChadUrl = () => {
-    if (chadPort) {
-      return `http://${DEV_DROPLET}:${chadPort}`;
-    }
-    return CHAD_URL; // Default global Chad at 5401
-  };
-  const activeChadUrl = getChadUrl();
+  // Get team-specific URLs based on chadPort
+  const teamUrls = getTeamUrls(chadPort);
+  const activeChadUrl = teamUrls.chad;
+  const activeJenUrl = teamUrls.jen;
+  const activeSusanUrl = teamUrls.susan;
   const [chadStatus, setChadStatus] = useState<ChadStatus>(defaultChadStatus);
   const [jenStatus, setJenStatus] = useState<JenStatus>(defaultJenStatus);
   const [susanStatus, setSusanStatus] = useState<SusanStatus>(defaultSusanStatus);
@@ -116,7 +121,7 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
   // Fetch Jen status
   const fetchJenStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${JEN_URL}/api/status`, { cache: 'no-store' });
+      const res = await fetch(`${activeJenUrl}/api/status`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -136,12 +141,12 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
         isRunning: false,
       }));
     }
-  }, []);
+  }, [activeJenUrl]);
 
   // Fetch Susan status
   const fetchSusanStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${SUSAN_URL}/api/status`, { cache: 'no-store' });
+      const res = await fetch(`${activeSusanUrl}/api/status`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -161,13 +166,13 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
         isRunning: false,
       }));
     }
-  }, []);
+  }, [activeSusanUrl]);
 
   // Fetch bucket counts from Jen - she flags items INTO these buckets
   // Susan then files items OUT of these buckets (decreasing counts)
   const fetchBuckets = useCallback(async () => {
     try {
-      const res = await fetch(`${JEN_URL}/api/buckets`, { cache: 'no-store' });
+      const res = await fetch(`${activeJenUrl}/api/buckets`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -199,7 +204,7 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
     } catch (error) {
       console.error('Failed to fetch buckets:', error);
     }
-  }, [buckets]);
+  }, [buckets, activeJenUrl]);
 
   // Fetch recent sessions from Chad
   const fetchSessions = useCallback(async () => {
@@ -293,9 +298,9 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
   // Trigger a specific team member
   const triggerTeamMember = useCallback(async (member: 'chad' | 'jen' | 'susan') => {
     const urls: Record<string, string> = {
-      chad: CHAD_URL,
-      jen: JEN_URL,
-      susan: SUSAN_URL,
+      chad: activeChadUrl,
+      jen: activeJenUrl,
+      susan: activeSusanUrl,
     };
 
     try {
@@ -309,7 +314,7 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
     } catch (error) {
       console.error(`Failed to trigger ${member}:`, error);
     }
-  }, [refreshAll]);
+  }, [refreshAll, activeChadUrl, activeJenUrl, activeSusanUrl]);
 
   // Calculate bucket delta (positive = Jen adding, negative = Susan removing)
   const bucketDelta = useCallback(() => {
