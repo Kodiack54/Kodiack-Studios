@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const workspace = searchParams.get('workspace'); // Filter by team: global, dev1, dev2, dev3
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -43,10 +44,20 @@ export async function GET(request: NextRequest) {
     `;
 
     const params: (string | number)[] = [];
+    const conditions: string[] = [];
 
     if (status) {
       params.push(status);
-      query += ` WHERE status = $${params.length}`;
+      conditions.push(`status = $${params.length}`);
+    }
+
+    if (workspace) {
+      params.push(workspace);
+      conditions.push(`workspace = $${params.length}`);
+    }
+
+    if (conditions.length > 0) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
     }
 
     query += ` ORDER BY started_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
@@ -57,9 +68,18 @@ export async function GET(request: NextRequest) {
     // Also get total count for pagination
     let countQuery = 'SELECT COUNT(*) FROM dev_ai_sessions';
     const countParams: string[] = [];
+    const countConditions: string[] = [];
+
     if (status) {
       countParams.push(status);
-      countQuery += ` WHERE status = $1`;
+      countConditions.push(`status = $${countParams.length}`);
+    }
+    if (workspace) {
+      countParams.push(workspace);
+      countConditions.push(`workspace = $${countParams.length}`);
+    }
+    if (countConditions.length > 0) {
+      countQuery += ` WHERE ${countConditions.join(' AND ')}`;
     }
     const countResult = await pool.query(countQuery, countParams);
 

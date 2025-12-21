@@ -66,6 +66,20 @@ interface DatabaseStats {
 }
 
 export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
+  const { chadPort, isGlobal } = options;
+
+  // Derive workspace from chadPort
+  // chadPort 5411 → dev1, 5421 → dev2, 5431 → dev3
+  // isGlobal or no chadPort → no filter (all data)
+  const getWorkspace = (): string | null => {
+    if (isGlobal || !chadPort) return null;
+    if (chadPort >= 5410 && chadPort < 5420) return 'dev1';
+    if (chadPort >= 5420 && chadPort < 5430) return 'dev2';
+    if (chadPort >= 5430 && chadPort < 5440) return 'dev3';
+    return null;
+  };
+  const workspace = getWorkspace();
+
   const [chadStatus, setChadStatus] = useState<ChadStatus>(defaultChadStatus);
   const [jenStatus, setJenStatus] = useState<JenStatus>(defaultJenStatus);
   const [susanStatus, setSusanStatus] = useState<SusanStatus>(defaultSusanStatus);
@@ -88,10 +102,14 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
   // Fetch ALL data from database and derive worker status
   const fetchFromDatabase = useCallback(async () => {
     try {
+      // Build query params for workspace filtering
+      const workspaceParam = workspace ? `?workspace=${workspace}` : '';
+      const sessionsParam = workspace ? `?workspace=${workspace}&limit=50` : '?limit=50';
+
       // Fetch buckets (status counts) and sessions in parallel
       const [bucketsRes, sessionsRes] = await Promise.all([
-        fetch('/api/ai-sessions/buckets', { cache: 'no-store' }),
-        fetch('/api/ai-sessions?limit=50', { cache: 'no-store' }),
+        fetch(`/api/ai-sessions/buckets${workspaceParam}`, { cache: 'no-store' }),
+        fetch(`/api/ai-sessions${sessionsParam}`, { cache: 'no-store' }),
       ]);
 
       if (!bucketsRes.ok || !sessionsRes.ok) {
@@ -173,7 +191,7 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
       setJenStatus(prev => ({ ...prev, error: errorMsg, isRunning: false }));
       setSusanStatus(prev => ({ ...prev, error: errorMsg, isRunning: false }));
     }
-  }, [buckets]);
+  }, [buckets, workspace]);
 
   // Calculate pipeline health based on database status
   const calculateHealth = useCallback(() => {
