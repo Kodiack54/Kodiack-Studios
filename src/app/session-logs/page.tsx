@@ -156,9 +156,9 @@ export default function SessionLogsPage() {
     refreshAll();
   }, []);
 
-  // Auto-refresh every 10 seconds
+  // Auto-refresh every 5 seconds for real-time updates
   useEffect(() => {
-    const interval = setInterval(refreshAll, 10000);
+    const interval = setInterval(refreshAll, 5000);
     return () => clearInterval(interval);
   }, [refreshAll]);
 
@@ -364,21 +364,25 @@ function TotalStat({ label, value, color }: { label: string; value: number; colo
 function SessionItem({ session }: { session: Session }) {
   const datetime = session.started_at ? formatDateTime(session.started_at) : '??:??';
 
-  // Display logic: prefer source_name for AI sessions, user_name for humans
+  // Display logic: show meaningful names based on source
   const getDisplayName = () => {
-    // If it's an AI session, show the source
+    // AI session types
     if (session.source_type === 'internal_claude') {
       return 'Internal Claude';
     }
-    if (session.source_type === 'external' || session.source_name?.includes('claude')) {
+    if (session.source_type === 'external') {
       return 'External Claude';
     }
-    // Otherwise show user name or fall back
-    if (session.user_name && session.user_name.trim()) {
-      return session.user_name;
+    if (session.source_type === 'chat_systems') {
+      return 'Chat Systems';
     }
+    // Show source_name if available
     if (session.source_name && session.source_name.trim()) {
       return session.source_name;
+    }
+    // Show user name
+    if (session.user_name && session.user_name.trim()) {
+      return session.user_name;
     }
     // Don't show raw UUIDs
     if (session.user_id && !session.user_id.includes('-')) {
