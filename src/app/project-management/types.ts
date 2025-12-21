@@ -19,6 +19,8 @@ export interface Project {
   logo_url?: string;
   build_number?: string;
   is_active: boolean;
+  is_parent?: boolean;
+  parent_id?: string;
   sort_order?: number;
   client_id?: string;
   created_at: string;

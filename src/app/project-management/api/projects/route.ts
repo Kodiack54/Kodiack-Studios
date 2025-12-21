@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('client_id');
+    const isParent = searchParams.get('is_parent');
 
     // Build query
     let query = db
@@ -20,6 +21,11 @@ export async function GET(request: NextRequest) {
     // Filter by client if provided
     if (clientId) {
       query = query.eq('client_id', clientId);
+    }
+
+    // Filter by is_parent if provided
+    if (isParent === 'true') {
+      query = query.eq('is_parent', true);
     }
 
     const { data: projectsData, error: projectsError } = await query
@@ -85,6 +91,8 @@ export async function POST(request: NextRequest) {
       port_prod,
       created_by,
       client_id,
+      parent_id,
+      is_parent,
     } = body;
 
     if (!name || !slug) {
@@ -132,6 +140,8 @@ export async function POST(request: NextRequest) {
         port_prod,
         created_by,
         client_id,
+        parent_id,
+        is_parent: is_parent || false,
         sort_order,
       })
       .select()

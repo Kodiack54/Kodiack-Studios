@@ -10,6 +10,12 @@ interface Client {
   slug: string;
 }
 
+interface ParentProject {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface ProjectFormProps {
   project: Project | null;
   onClose: () => void;
@@ -18,11 +24,15 @@ interface ProjectFormProps {
 
 export default function ProjectForm({ project, onClose, onSave }: ProjectFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
+  const [parentProjects, setParentProjects] = useState<ParentProject[]>([]);
   const [formData, setFormData] = useState({
     name: project?.name || '',
     slug: project?.slug || '',
     description: project?.description || '',
     client_id: project?.client_id || '',
+    parent_id: project?.parent_id || '',
+    is_parent: project?.is_parent ?? false,
+    is_active: project?.is_active ?? true,
     droplet_name: project?.droplet_name || '',
     droplet_ip: project?.droplet_ip || '',
     server_path: project?.server_path || '',
@@ -32,7 +42,6 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
     git_repo: project?.git_repo || '',
     table_prefix: project?.table_prefix || '',
     logo_url: project?.logo_url || '',
-    is_active: project?.is_active ?? true,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -40,6 +49,15 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
   useEffect(() => {
     fetchClients();
   }, []);
+
+  // Fetch parent projects when client changes
+  useEffect(() => {
+    if (formData.client_id) {
+      fetchParentProjects(formData.client_id);
+    } else {
+      setParentProjects([]);
+    }
+  }, [formData.client_id]);
 
   const fetchClients = async () => {
     try {
@@ -50,6 +68,20 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
       }
     } catch (err) {
       console.error('Failed to fetch clients:', err);
+    }
+  };
+
+  const fetchParentProjects = async (clientId: string) => {
+    try {
+      const response = await fetch(`/project-management/api/projects?client_id=${clientId}&is_parent=true`);
+      const data = await response.json();
+      if (data.success) {
+        // Filter out the current project if editing
+        const parents = (data.projects || []).filter((p: ParentProject) => p.id !== project?.id);
+        setParentProjects(parents);
+      }
+    } catch (err) {
+      console.error('Failed to fetch parent projects:', err);
     }
   };
 
@@ -70,6 +102,8 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
       const payload = {
         ...formData,
         client_id: formData.client_id || null,
+        parent_id: formData.is_parent ? null : (formData.parent_id || null),
+        is_parent: formData.is_parent,
         port_dev: formData.port_dev ? parseInt(formData.port_dev) : null,
         port_test: formData.port_test ? parseInt(formData.port_test) : null,
         port_prod: formData.port_prod ? parseInt(formData.port_prod) : null,
@@ -124,7 +158,7 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Client Selector - Full Width at Top */}
+            {/* Client Selector */}
             <div className="col-span-2">
               <label className="block text-sm text-gray-400 mb-1">Client</label>
               <select
@@ -140,6 +174,51 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Parent Project Selector */}
+            {!formData.is_parent && (
+              <div className="col-span-2">
+                <label className="block text-sm text-gray-400 mb-1">Parent Project</label>
+                <select
+                  name="parent_id"
+                  value={formData.parent_id}
+                  onChange={handleChange}
+                  disabled={!formData.client_id}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none disabled:opacity-50"
+                >
+                  <option value="">-- No Parent (Top Level) --</option>
+                  {parentProjects.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Active & Is Parent Toggles */}
+            <div className="col-span-2 flex items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={formData.is_active}
+                  onChange={handleChange}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-400">Active</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_parent"
+                  checked={formData.is_parent}
+                  onChange={handleChange}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-gray-400">Parent Project</span>
+              </label>
             </div>
 
             {/* Name */}
@@ -287,20 +366,6 @@ export default function ProjectForm({ project, onClose, onSave }: ProjectFormPro
                 onChange={handleChange}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none"
               />
-            </div>
-
-            {/* Active Toggle */}
-            <div className="col-span-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleChange}
-                  className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-400">Active Project</span>
-              </label>
             </div>
           </div>
         </form>
