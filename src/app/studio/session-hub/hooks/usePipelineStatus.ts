@@ -131,9 +131,9 @@ export function usePipelineStatus(options: UsePipelineStatusOptions = {}) {
         });
 
         // Derive Jen status from database
-        // Jen scrubs captured sessions -> queue is captured, processed is scrubbed + flagged
+        // Jen scrubs captured sessions -> queue is captured, processed moves to flagged
         const jenQueue = stats.captured || 0;
-        const jenProcessed = (stats.scrubbed || 0) + (stats.flagged || 0);
+        const jenProcessed = stats.flagged || 0;
 
         setJenStatus({
           isRunning: jenQueue > 0,
