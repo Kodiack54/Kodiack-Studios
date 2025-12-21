@@ -58,10 +58,20 @@ interface DatabaseStats {
   last_session: string | null;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  path?: string;
+  todos?: number;
+  knowledge?: number;
+  bugs?: number;
+}
+
 export default function SessionLogsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [buckets, setBuckets] = useState<BucketCounts>({});
   const [jenBuckets, setJenBuckets] = useState<BucketCounts>({});
+  const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [teamStatuses, setTeamStatuses] = useState<Record<string, TeamStatus>>({});
   const [loading, setLoading] = useState(false);
@@ -74,11 +84,12 @@ export default function SessionLogsPage() {
     setError(null);
 
     try {
-      // Fetch sessions, pipeline buckets, and Jen's extraction buckets
-      const [sessionsRes, bucketsRes, extractionsRes] = await Promise.all([
+      // Fetch sessions, pipeline buckets, Jen's extraction buckets, and projects
+      const [sessionsRes, bucketsRes, extractionsRes, projectsRes] = await Promise.all([
         fetch('/api/ai-sessions?limit=100', { cache: 'no-store' }),
         fetch('/api/ai-sessions/buckets', { cache: 'no-store' }),
         fetch('/api/ai-extractions', { cache: 'no-store' }),
+        fetch('/project-management/api/projects/summary', { cache: 'no-store' }),
       ]);
 
       if (!sessionsRes.ok || !bucketsRes.ok) {
@@ -88,6 +99,7 @@ export default function SessionLogsPage() {
       const sessionsData = await sessionsRes.json();
       const bucketsData = await bucketsRes.json();
       const extractionsData = extractionsRes.ok ? await extractionsRes.json() : { success: false };
+      const projectsData = projectsRes.ok ? await projectsRes.json() : { success: false };
 
       if (sessionsData.success) {
         setSessions(sessionsData.sessions || []);
@@ -100,6 +112,10 @@ export default function SessionLogsPage() {
 
       if (extractionsData.success) {
         setJenBuckets(extractionsData.buckets || {});
+      }
+
+      if (projectsData.success) {
+        setProjects(projectsData.projects || []);
       }
 
       // Fetch each team's stats
@@ -224,83 +240,93 @@ export default function SessionLogsPage() {
         </div>
       </div>
 
-      {/* Main Content - 3/4 left, 1/4 right */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left 3/4: Pipeline section */}
-        <div className="flex-[3] flex flex-col border-r border-gray-700 min-w-0">
-          {/* Pipeline Status Header - spans full 3/4 width */}
-          <div className="px-4 py-3 bg-gray-800/50 border-b border-gray-700 shrink-0">
-            <div className="flex items-center justify-around">
-              <TotalStat label="Active" value={totals.active} color="cyan" />
-              <PipelineArrow />
-              <TotalStat label="Captured" value={totals.captured} color="blue" />
-              <PipelineArrow />
-              <TotalStat label="Flagged" value={totals.flagged} color="purple" />
-              <PipelineArrow />
-              <TotalStat label="Pending" value={totals.pending} color="yellow" />
-              <PipelineArrow />
-              <TotalStat label="Cleaned" value={totals.cleaned} color="teal" />
-              <PipelineArrow />
-              <TotalStat label="Archived" value={totals.archived} color="green" />
-            </div>
-            <div className="text-center mt-2 text-xs text-gray-500">
-              {totals.total} total sessions | {totals.last24h} in last 24h
-            </div>
+      {/* Pipeline Header Row: 3/4 header | 1/4 pipeline buckets */}
+      <div className="flex border-b border-gray-700 shrink-0">
+        {/* 3/4 Pipeline Header */}
+        <div className="flex-[3] px-4 py-3 bg-gray-800/50 border-r border-gray-700">
+          <div className="flex items-center justify-around">
+            <TotalStat label="Active" value={totals.active} color="cyan" />
+            <PipelineArrow />
+            <TotalStat label="Captured" value={totals.captured} color="blue" />
+            <PipelineArrow />
+            <TotalStat label="Flagged" value={totals.flagged} color="purple" />
+            <PipelineArrow />
+            <TotalStat label="Pending" value={totals.pending} color="yellow" />
+            <PipelineArrow />
+            <TotalStat label="Cleaned" value={totals.cleaned} color="teal" />
+            <PipelineArrow />
+            <TotalStat label="Archived" value={totals.archived} color="green" />
           </div>
-
-          {/* Below header: Sessions (2/3) and Pipeline Buckets (1/3) side by side */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* Sessions - 2/3 of 3/4 section */}
-            <div className="flex-[2] flex flex-col border-r border-gray-700 min-w-0">
-              <div className="px-4 py-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
-                <h2 className="text-sm font-medium text-gray-300">Recent Sessions ({sessions.length})</h2>
-              </div>
-              <div className="flex-1 overflow-auto p-3 space-y-2">
-                {sessions.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-3xl mb-2">📭</div>
-                    <p>No sessions in database</p>
-                  </div>
-                ) : (
-                  sessions.map(session => (
-                    <SessionItem key={session.id} session={session} />
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Pipeline Buckets - 1/3 of 3/4 section */}
-            <div className="flex-1 flex flex-col min-w-0">
-              <div className="px-4 py-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
-                <h2 className="text-sm font-medium text-gray-300">Pipeline Status</h2>
-              </div>
-              <div className="flex-1 overflow-auto p-3">
-                <div className="space-y-1">
-                  {Object.entries(buckets)
-                    .filter(([name]) => ['active', 'captured', 'flagged', 'pending', 'cleaned', 'archived'].includes(name))
-                    .sort((a, b) => {
-                      const order = ['active', 'captured', 'flagged', 'pending', 'cleaned', 'archived'];
-                      return order.indexOf(a[0]) - order.indexOf(b[0]);
-                    })
-                    .map(([name, count]) => (
-                      <BucketRow key={name} name={name} count={count} />
-                    ))}
-                </div>
-              </div>
-            </div>
+          <div className="text-center mt-2 text-xs text-gray-500">
+            {totals.total} total sessions | {totals.last24h} in last 24h
           </div>
         </div>
 
-        {/* Right 1/4: Jen's 20 Buckets */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* 1/4 Pipeline Buckets (compact) */}
+        <div className="flex-1 px-3 py-2 bg-gray-800/50">
+          <div className="space-y-0.5">
+            {['active', 'captured', 'flagged', 'pending', 'cleaned', 'archived'].map(name => (
+              <div key={name} className="flex items-center justify-between text-xs">
+                <span className="text-gray-400 capitalize">{name}</span>
+                <span className="font-mono font-bold text-white">{buckets[name] || 0}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content - 3 equal columns */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Column 1: Chad's Session Logs */}
+        <div className="flex-1 flex flex-col border-r border-gray-700 min-w-0">
           <div className="px-4 py-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
-            <h2 className="text-sm font-medium text-gray-300">Jen's Extraction Buckets</h2>
+            <h2 className="text-sm font-medium text-gray-300">Chad's Sessions ({sessions.length})</h2>
+          </div>
+          <div className="flex-1 overflow-auto p-3 space-y-2">
+            {sessions.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-3xl mb-2">📭</div>
+                <p>No sessions in database</p>
+              </div>
+            ) : (
+              sessions.map(session => (
+                <SessionItem key={session.id} session={session} />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Column 2: Jen's Flagged Buckets */}
+        <div className="flex-1 flex flex-col border-r border-gray-700 min-w-0">
+          <div className="px-4 py-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
+            <h2 className="text-sm font-medium text-gray-300">Jen's Flagged Items</h2>
           </div>
           <div className="flex-1 overflow-auto p-3">
             <div className="space-y-1">
               {JEN_BUCKETS.map(name => (
                 <BucketRow key={name} name={name} count={jenBuckets[name] || 0} />
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Column 3: Susan's Projects */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="px-4 py-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
+            <h2 className="text-sm font-medium text-gray-300">Susan's Projects ({projects.length})</h2>
+          </div>
+          <div className="flex-1 overflow-auto p-3">
+            <div className="space-y-2">
+              {projects.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-3xl mb-2">📁</div>
+                  <p>No projects</p>
+                </div>
+              ) : (
+                projects.map(project => (
+                  <ProjectCard key={project.id} project={project} />
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -409,6 +435,26 @@ function BucketRow({ name, count }: { name: string; count: number }) {
       <span className={`font-mono font-bold min-w-[24px] text-right ${count > 0 ? 'text-white' : 'text-gray-600'}`}>
         {count}
       </span>
+    </div>
+  );
+}
+
+// Project card for Susan's column
+function ProjectCard({ project }: { project: Project }) {
+  return (
+    <div className="p-2 rounded border border-gray-700 bg-gray-800/50">
+      <div className="font-medium text-white text-sm truncate">{project.name}</div>
+      <div className="flex items-center gap-3 mt-1 text-xs">
+        <span className="text-blue-400">
+          <span className="text-gray-500">Todos:</span> {project.todos || 0}
+        </span>
+        <span className="text-green-400">
+          <span className="text-gray-500">Knowledge:</span> {project.knowledge || 0}
+        </span>
+        <span className="text-red-400">
+          <span className="text-gray-500">Bugs:</span> {project.bugs || 0}
+        </span>
+      </div>
     </div>
   );
 }
