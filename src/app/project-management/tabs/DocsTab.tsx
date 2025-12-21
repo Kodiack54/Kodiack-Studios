@@ -91,7 +91,7 @@ export default function DocsTab({ projectPath, projectId }: DocsTabProps) {
 
   const fetchProjectPaths = async () => {
     try {
-      const response = await fetch(`/api/project-paths?project_id=${projectId}`);
+      const response = await fetch(`/project-management/api/project-paths?project_id=${projectId}`);
       const data = await response.json();
       if (data.success) {
         setProjectPaths(data.paths || []);
@@ -131,7 +131,7 @@ export default function DocsTab({ projectPath, projectId }: DocsTabProps) {
     setIsLoading(true);
     try {
       const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-      const response = await fetch(`/api/clair/docs/${cleanPath}`);
+      const response = await fetch(`/project-management/api/clair/docs/${cleanPath}`);
       const data = await response.json();
       if (data.success) {
         setDocs(data.docs || []);
@@ -155,8 +155,8 @@ export default function DocsTab({ projectPath, projectId }: DocsTabProps) {
     try {
       const cleanPath = selectedPath.path.startsWith('/') ? selectedPath.path.slice(1) : selectedPath.path;
       const url = editingDoc
-        ? `/api/clair/docs/${cleanPath}/${editingDoc.id}`
-        : `/api/clair/docs/${cleanPath}`;
+        ? `/project-management/api/clair/docs/${cleanPath}/${editingDoc.id}`
+        : `/project-management/api/clair/docs/${cleanPath}`;
       const method = editingDoc ? 'PATCH' : 'POST';
 
       await fetch(url, {
@@ -175,7 +175,7 @@ export default function DocsTab({ projectPath, projectId }: DocsTabProps) {
     if (!confirm('Delete this document?') || !selectedPath) return;
     try {
       const cleanPath = selectedPath.path.startsWith('/') ? selectedPath.path.slice(1) : selectedPath.path;
-      await fetch(`/api/clair/docs/${cleanPath}/${doc.id}`, { method: 'DELETE' });
+      await fetch(`/project-management/api/clair/docs/${cleanPath}/${doc.id}`, { method: 'DELETE' });
       if (selectedDoc?.id === doc.id) setSelectedDoc(null);
       fetchDocs(selectedPath.path);
     } catch (error) {

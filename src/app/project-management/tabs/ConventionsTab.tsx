@@ -47,7 +47,7 @@ export default function ConventionsTab({ projectPath, projectId }: ConventionsTa
 
   const fetchConventions = async () => {
     try {
-      const res = await fetch(`/api/conventions?project_path=${encodeURIComponent(projectPath)}`);
+      const res = await fetch(`/project-management/api/conventions?project_path=${encodeURIComponent(projectPath)}`);
       const data = await res.json();
       if (data.success) {
         setConventions(data.conventions || []);
@@ -63,8 +63,8 @@ export default function ConventionsTab({ projectPath, projectId }: ConventionsTa
     if (!formData.name.trim()) return;
 
     try {
-      const url = editingId 
-        ? `/api/conventions/${editingId}` 
+      const url = editingId
+        ? `/project-management/api/conventions/${editingId}`
         : '/project-management/api/conventions';
       
       const res = await fetch(url, {
@@ -90,7 +90,7 @@ export default function ConventionsTab({ projectPath, projectId }: ConventionsTa
     if (!confirm('Delete this convention?')) return;
 
     try {
-      const res = await fetch(`/api/conventions/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/project-management/api/conventions/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         fetchConventions();

@@ -37,7 +37,7 @@ export default function ProjectFolderSelector({
   const fetchProjectPaths = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/project-paths?project_id=${projectId}`);
+      const response = await fetch(`/project-management/api/project-paths?project_id=${projectId}`);
       const data = await response.json();
       if (data.success) {
         const paths = data.paths || [];

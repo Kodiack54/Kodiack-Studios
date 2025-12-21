@@ -92,7 +92,7 @@ export default function CodeChangesTab({ projectPath, projectId }: CodeChangesTa
 
   const fetchProjectPaths = async () => {
     try {
-      const response = await fetch(`/api/project-paths?project_id=${projectId}`);
+      const response = await fetch(`/project-management/api/project-paths?project_id=${projectId}`);
       const data = await response.json();
       if (data.success) {
         setProjectPaths(data.paths || []);
@@ -132,7 +132,7 @@ export default function CodeChangesTab({ projectPath, projectId }: CodeChangesTa
     setIsLoading(true);
     try {
       const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-      const response = await fetch(`/api/clair/conventions/${cleanPath}`);
+      const response = await fetch(`/project-management/api/clair/conventions/${cleanPath}`);
       const data = await response.json();
       if (data.success) {
         setConventions(data.conventions || []);
@@ -149,8 +149,8 @@ export default function CodeChangesTab({ projectPath, projectId }: CodeChangesTa
     try {
       const cleanPath = selectedPath.path.startsWith('/') ? selectedPath.path.slice(1) : selectedPath.path;
       const url = editingConvention
-        ? `/api/clair/conventions/${cleanPath}/${editingConvention.id}`
-        : `/api/clair/conventions/${cleanPath}`;
+        ? `/project-management/api/clair/conventions/${cleanPath}/${editingConvention.id}`
+        : `/project-management/api/clair/conventions/${cleanPath}`;
       const method = editingConvention ? 'PATCH' : 'POST';
 
       const payload = {
@@ -174,7 +174,7 @@ export default function CodeChangesTab({ projectPath, projectId }: CodeChangesTa
     if (!confirm('Delete this convention?') || !selectedPath) return;
     try {
       const cleanPath = selectedPath.path.startsWith('/') ? selectedPath.path.slice(1) : selectedPath.path;
-      await fetch(`/api/clair/conventions/${cleanPath}/${convention.id}`, { method: 'DELETE' });
+      await fetch(`/project-management/api/clair/conventions/${cleanPath}/${convention.id}`, { method: 'DELETE' });
       fetchConventions(selectedPath.path);
     } catch (error) {
       console.error('Error deleting convention:', error);
