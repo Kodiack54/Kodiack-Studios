@@ -94,13 +94,28 @@ export default function CodeChangesTab({ projectPath, projectId }: CodeChangesTa
     try {
       const response = await fetch(`/project-management/api/project-paths?project_id=${projectId}`);
       const data = await response.json();
-      if (data.success) {
-        setProjectPaths(data.paths || []);
-        const mainPath = data.paths?.find((p: ProjectPath) => p.path === projectPath);
+
+      let paths = data.paths || [];
+
+      // If no project_paths exist but we have a projectPath prop, create a virtual entry
+      if (paths.length === 0 && projectPath) {
+        paths = [{
+          id: 'virtual-main',
+          project_id: projectId,
+          path: projectPath,
+          label: projectPath.split('/').pop() || 'Main',
+          sort_order: 0,
+          created_at: new Date().toISOString(),
+        }];
+      }
+
+      if (data.success || paths.length > 0) {
+        setProjectPaths(paths);
+        const mainPath = paths.find((p: ProjectPath) => p.path === projectPath);
         if (mainPath) {
           setSelectedPath(mainPath);
-        } else if (data.paths?.length > 0) {
-          setSelectedPath(data.paths[0]);
+        } else if (paths.length > 0) {
+          setSelectedPath(paths[0]);
         }
       }
     } catch (error) {

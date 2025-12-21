@@ -108,6 +108,19 @@ export default function DocsTab({ projectPath, projectId, isParent, childProject
         }
       }
 
+      // If no project_paths exist but we have a projectPath prop, create a virtual entry
+      if (allPaths.length === 0 && projectPath) {
+        const virtualPath: ProjectPath = {
+          id: 'virtual-main',
+          project_id: projectId,
+          path: projectPath,
+          label: projectPath.split('/').pop() || 'Main',
+          sort_order: 0,
+          created_at: new Date().toISOString(),
+        };
+        allPaths.push(virtualPath);
+      }
+
       setProjectPaths(allPaths);
       const mainPath = allPaths.find((p: ProjectPath) => p.path === projectPath);
       if (mainPath) {
