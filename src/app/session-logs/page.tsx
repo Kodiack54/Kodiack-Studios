@@ -61,6 +61,7 @@ interface DatabaseStats {
 export default function SessionLogsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [buckets, setBuckets] = useState<BucketCounts>({});
+  const [jenBuckets, setJenBuckets] = useState<BucketCounts>({});
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [teamStatuses, setTeamStatuses] = useState<Record<string, TeamStatus>>({});
   const [loading, setLoading] = useState(false);
@@ -73,10 +74,11 @@ export default function SessionLogsPage() {
     setError(null);
 
     try {
-      // Fetch sessions and global buckets
-      const [sessionsRes, bucketsRes] = await Promise.all([
+      // Fetch sessions, pipeline buckets, and Jen's extraction buckets
+      const [sessionsRes, bucketsRes, extractionsRes] = await Promise.all([
         fetch('/api/ai-sessions?limit=100', { cache: 'no-store' }),
         fetch('/api/ai-sessions/buckets', { cache: 'no-store' }),
+        fetch('/api/ai-extractions', { cache: 'no-store' }),
       ]);
 
       if (!sessionsRes.ok || !bucketsRes.ok) {
@@ -85,6 +87,7 @@ export default function SessionLogsPage() {
 
       const sessionsData = await sessionsRes.json();
       const bucketsData = await bucketsRes.json();
+      const extractionsData = extractionsRes.ok ? await extractionsRes.json() : { success: false };
 
       if (sessionsData.success) {
         setSessions(sessionsData.sessions || []);
@@ -93,6 +96,10 @@ export default function SessionLogsPage() {
       if (bucketsData.success) {
         setBuckets(bucketsData.buckets || {});
         setStats(bucketsData.stats || null);
+      }
+
+      if (extractionsData.success) {
+        setJenBuckets(extractionsData.buckets || {});
       }
 
       // Fetch each team's stats
@@ -287,12 +294,12 @@ export default function SessionLogsPage() {
         {/* Right 1/4: Jen's 20 Buckets */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="px-4 py-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
-            <h2 className="text-sm font-medium text-gray-300">Flagged Buckets (All Teams)</h2>
+            <h2 className="text-sm font-medium text-gray-300">Jen's Extraction Buckets</h2>
           </div>
           <div className="flex-1 overflow-auto p-3">
             <div className="space-y-1">
               {JEN_BUCKETS.map(name => (
-                <BucketRow key={name} name={name} count={buckets[name] || 0} />
+                <BucketRow key={name} name={name} count={jenBuckets[name] || 0} />
               ))}
             </div>
           </div>
