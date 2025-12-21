@@ -9,8 +9,17 @@ interface SessionHubPageProps {
   isGlobal?: boolean;
 }
 
+// Helper to get team name from base port
+function getTeamName(basePort?: number): string {
+  if (!basePort) return 'Global Team';
+  const teamNumber = Math.floor((basePort - 5400) / 10);
+  if (teamNumber === 0) return 'Global Team';
+  return `Development Team ${teamNumber}`;
+}
+
 export default function SessionHubPage({ teamBasePort, isGlobal = false }: SessionHubPageProps) {
   const chadPort = teamBasePort ? teamBasePort + 1 : undefined;
+  const teamName = getTeamName(teamBasePort);
 
   const {
     chadStatus,
@@ -28,10 +37,13 @@ export default function SessionHubPage({ teamBasePort, isGlobal = false }: Sessi
   return (
     <div className="h-full flex flex-col bg-gray-900 text-white overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-2 bg-gray-800 border-b border-gray-700 flex items-center justify-between shrink-0">
+      <div className="px-4 py-2 bg-gray-800 border-b border-gray-700 flex items-center justify-between shrink-0 relative">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold">Session Hub</h1>
           <HealthBadge health={health.overall} />
+        </div>
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <span className="text-lg font-bold text-cyan-400">{teamName}</span>
         </div>
         <button
           onClick={refreshAll}
