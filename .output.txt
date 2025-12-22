@@ -1,0 +1,1210 @@
+﻿
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/21/2025  12:22 AM                app
+d-----        12/21/2025   8:09 AM                components
+d-----        12/19/2025  12:55 AM                config
+d-----        12/19/2025  12:55 AM                hooks
+d-----        12/20/2025  12:42 AM                lib
+d-----        12/20/2025  12:42 AM                types
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/21/2025  11:42 AM                api
+d-----        12/19/2025  12:55 AM                calendar
+d-----        12/21/2025  12:21 AM                contexts
+d-----        12/19/2025  12:55 AM                credentials
+d-----        12/19/2025  12:55 AM                dashboard
+d-----        12/19/2025  12:55 AM                dev-controls
+d-----        12/19/2025  12:55 AM                development
+d-----        12/19/2025  12:55 AM                helpdesk
+d-----        12/19/2025   1:09 AM                login
+d-----        12/21/2025   8:35 AM                project-management
+d-----        12/19/2025  12:55 AM                servers
+d-----        12/21/2025   1:25 PM                session-logs
+d-----        12/19/2025   7:48 PM                settings
+d-----        12/20/2025   8:36 PM                studio
+d-----        12/19/2025  12:55 AM                team
+d-----        12/19/2025  12:55 AM                tickets
+-a----        12/11/2025  11:04 AM           1763 globals.css
+-a----        12/21/2025  12:22 AM           3644 layout.tsx
+-a----        12/11/2025  11:10 AM            106 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/21/2025  11:42 AM                ai-extractions
+d-----        12/21/2025  10:57 AM                ai-sessions
+d-----        12/20/2025   9:51 PM                clients
+d-----        12/19/2025  12:55 AM                deploy
+d-----        12/19/2025  12:55 AM                dev-controls
+d-----        12/19/2025  12:55 AM                dev-redirect
+d-----        12/20/2025  12:46 AM                dev-server
+d-----        12/20/2025   4:49 PM                dev-session
+d-----        12/19/2025  12:55 AM                engine
+d-----        12/19/2025  12:55 AM                engine-redirect
+d-----        12/19/2025  12:55 AM                logs
+d-----        12/19/2025  12:55 AM                nextbidder
+d-----        12/19/2025  12:55 AM                patcher
+d-----        12/19/2025  12:55 AM                portals
+d-----        12/19/2025  12:55 AM                server
+d-----        12/19/2025  12:55 AM                servers
+d-----        12/19/2025  12:55 AM                sources
+d-----        12/20/2025   8:33 PM                susan
+d-----        12/19/2025  12:55 AM                team
+d-----        12/19/2025  12:55 AM                tradelines
+d-----        12/20/2025   9:51 PM                users
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\ai
+    -extractions
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/21/2025  11:42 AM           4438 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\ai-sessions
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/21/2025  10:57 AM                buckets
+-a----        12/21/2025  10:57 AM           2784 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\ai
+    -sessions\buckets
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/21/2025  10:57 AM           2415 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\clients
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   9:51 PM                [id]
+-a----        12/20/2025   9:51 PM           2941 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\clients\[id]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   9:51 PM                devs
+d-----        12/20/2025   9:51 PM                projects
+-a----        12/20/2025   9:51 PM           2173 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\cl
+    ients\[id]\devs
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   9:51 PM           1900 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\cl
+    ients\[id]\projects
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   9:51 PM           2279 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\deploy
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                dev-environment
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\de
+    ploy\dev-environment
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   7:55 PM           4704 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\dev-controls
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                analytics
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\de
+    v-controls\analytics
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                debug
+d-----        12/19/2025  12:55 AM                engine
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\de
+    v-controls\analytics\debug
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025  10:16 PM           2384 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\de
+    v-controls\analytics\engine
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025  10:19 PM          12366 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\dev-redirect
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/14/2025   2:56 PM           1237 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\dev-server
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025  12:46 AM           8640 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\dev-session
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   5:28 PM                connect
+d-----        12/20/2025  10:26 AM                disconnect
+d-----        12/20/2025   5:34 PM                status
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\de
+    v-session\connect
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   5:28 PM           3047 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\de
+    v-session\disconnect
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025  10:26 AM           1302 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\de
+    v-session\status
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   5:34 PM           2322 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\engine
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                health
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\engine\health
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   9:09 PM           6599 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\en
+    gine-redirect
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025  12:15 PM           1052 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\nextbidder
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                worker
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\ne
+    xtbidder\worker
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                health
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\ne
+    xtbidder\worker\health
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   3:22 PM            565 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\patcher
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                server
+d-----        12/19/2025  12:55 AM                [...path]
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\pa
+    tcher\[...path]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025  11:09 PM           1425 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\portals
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                worker
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\po
+    rtals\worker
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                health
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\po
+    rtals\worker\health
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   3:22 PM            562 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\server
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [action]
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\se
+    rver\[action]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  11:08 AM           2669 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\servers
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                health
+d-----        12/19/2025  12:55 AM                logs
+d-----        12/19/2025  12:55 AM                reboot
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\se
+    rvers\health
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   1:46 PM          13819 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\servers\logs
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025  11:01 AM           4365 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\se
+    rvers\reboot
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   1:18 PM           3920 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\sources
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                worker
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\so
+    urces\worker
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                health
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\so
+    urces\worker\health
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   3:23 PM            562 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\susan
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   8:33 PM                chat
+d-----        12/20/2025   8:33 PM                conflicts
+d-----        12/20/2025   8:33 PM                notifications
+d-----        12/20/2025   8:33 PM                [...path]
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\susan\chat
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   8:33 PM           1826 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\su
+    san\conflicts
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   8:33 PM           4562 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\su
+    san\notifications
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   8:33 PM           2505 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\su
+    san\[...path]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   8:33 PM           3055 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\team
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                members
+d-----        12/19/2025  12:55 AM                permissions
+d-----        12/19/2025  12:55 AM                roles
+d-----        12/19/2025  12:55 AM                stats
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\team\members
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [id]
+-a----        12/12/2025   8:29 PM           5034 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\te
+    am\members\[id]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                deactivate
+-a----        12/12/2025   8:30 PM           6359 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\te
+    am\members\[id]\deactivate
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:38 PM            718 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\te
+    am\permissions
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:27 PM           2132 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\team\roles
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:44 PM           1073 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\team\stats
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:29 PM           2101 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\tradelines
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                stats
+d-----        12/19/2025  12:55 AM                worker
+d-----        12/19/2025  12:55 AM                [action]
+-a----        12/11/2025  12:11 PM           1454 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\tr
+    adelines\stats
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [tradeline]
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\tr
+    adelines\stats\[tradeline]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   9:46 AM           5627 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\tr
+    adelines\worker
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                health
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\tr
+    adelines\worker\health
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   3:22 PM            565 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\tr
+    adelines\[action]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [tradeline]
+-a----        12/11/2025   9:08 PM           1939 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\tr
+    adelines\[action]\[tradeline]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   9:19 AM           3516 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\api\users
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   9:51 PM            721 route.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\calendar
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                time-clock
+d-----        12/19/2025  12:55 AM                time-off
+d-----        12/19/2025  12:55 AM                timesheets
+-a----        12/11/2025   1:02 PM           8495 api.ts
+-a----        12/11/2025  10:56 PM           7929 calendarinfo.md
+-a----        12/12/2025   1:50 PM            209 loading.tsx
+-a----        12/12/2025   1:50 PM          19751 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\calend
+    ar\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   9:50 PM          12759 CreateEventModal.tsx
+-a----        12/11/2025  10:28 PM          18472 EditEventModal.tsx
+-a----        12/11/2025   9:48 PM           5537 MonthView.tsx
+-a----        12/11/2025   9:51 PM           9530 TimeAdjustmentModal.tsx
+-a----        12/11/2025   9:50 PM           9530 TimeOffRequestModal.tsx
+-a----        12/11/2025  10:25 PM          22064 WeekView.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\calend
+    ar\time-clock
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   1:03 PM            635 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\calendar\time-off
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   1:03 PM            637 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\calend
+    ar\timesheets
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   1:03 PM            642 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\contexts
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/21/2025  12:21 AM           2210 ClientContext.tsx
+-a----        12/20/2025   5:30 PM           5839 DeveloperContext.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\credentials
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                federal
+d-----        12/19/2025  12:55 AM                local
+d-----        12/19/2025  12:55 AM                municipal
+d-----        12/19/2025  12:55 AM                other
+d-----        12/19/2025  12:55 AM                state
+-a----        12/13/2025   1:04 AM            580 layout.tsx
+-a----        12/13/2025   1:03 AM          11691 page.tsx
+-a----        12/13/2025  12:51 AM           1585 structure.md
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\creden
+    tials\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025  12:46 AM           9340 CredentialForm.tsx
+-a----        12/13/2025   1:20 AM           7490 SourceCard.tsx
+-a----        12/13/2025   1:26 AM          25085 SourceDetailPage.tsx
+-a----        12/13/2025   1:02 AM           1726 TradelineDropdown.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\creden
+    tials\federal
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [sourceId]
+-a----        12/13/2025   1:21 AM           8190 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\creden
+    tials\federal\[sourceId]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   1:19 AM            456 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\credentials\local
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [sourceId]
+-a----        12/13/2025   1:23 AM           9138 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\creden
+    tials\local\[sourceId]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   1:19 AM            450 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\creden
+    tials\municipal
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [sourceId]
+-a----        12/13/2025   1:24 AM          15435 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\creden
+    tials\municipal\[sourceId]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   1:19 AM            463 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\credentials\other
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [sourceId]
+-a----        12/13/2025   1:25 AM          14811 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\creden
+    tials\other\[sourceId]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   1:19 AM            451 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\credentials\state
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                [sourceId]
+-a----        12/13/2025   1:22 AM          15689 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\creden
+    tials\state\[sourceId]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   1:19 AM            451 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dashboard
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025   9:31 PM            166 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dashbo
+    ard\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   3:50 PM          12059 EngineHealth.tsx
+-a----        12/11/2025   2:38 PM           3823 ProjectsOverview.tsx
+-a----        12/11/2025   2:38 PM            668 QuickActions.tsx
+-a----        12/11/2025   2:38 PM           4235 RecentActivity.tsx
+-a----        12/11/2025  11:07 AM           7392 ServerTabs.tsx
+-a----        12/11/2025  11:07 AM           1498 SummaryCards.tsx
+-a----        12/11/2025   3:22 PM           6857 SystemHealth.tsx
+-a----        12/11/2025  11:07 AM           3390 TradelineCard.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-controls
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                analytics
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                deploy
+d-----        12/19/2025  12:55 AM                git
+d-----        12/19/2025  12:55 AM                logs
+d-----        12/19/2025  12:55 AM                releases
+d-----        12/19/2025  12:55 AM                security
+d-----        12/19/2025  12:55 AM                ssh
+-a----        12/13/2025   7:46 PM          19015 api.ts
+-a----        12/12/2025   1:47 PM            200 loading.tsx
+-a----        12/12/2025   9:31 PM          10420 page.tsx
+-a----        12/13/2025  10:42 AM          18087 toolsinfo.md
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-co
+    ntrols\analytics
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025  10:45 PM          34790 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-co
+    ntrols\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   2:34 PM           3471 DeploymentsPanel.tsx
+-a----        12/12/2025  10:38 AM           9061 QuickActions.tsx
+-a----        12/11/2025   2:34 PM           4319 ServersPanel.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-co
+    ntrols\deploy
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/12/2025   1:46 PM           2140 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-co
+    ntrols\deploy\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025  10:22 AM           5849 DeploymentsList.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-controls\git
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   1:44 PM           4771 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-controls\logs
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   1:47 PM            205 loading.tsx
+-a----        12/12/2025   1:47 PM           2748 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-co
+    ntrols\releases
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/13/2025   7:55 PM          40693 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-co
+    ntrols\releases\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025  10:40 AM          15181 BugFlagPanel.tsx
+-a----        12/12/2025  10:41 AM          13296 CanaryControls.tsx
+-a----        12/12/2025  10:39 AM          11522 DevLockPanel.tsx
+-a----        12/12/2025  10:37 AM          15549 PatchNotesModal.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-co
+    ntrols\security
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   1:42 PM           8198 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\dev-controls\ssh
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   1:43 PM           1980 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\development
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   9:12 PM           3236 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpdesk
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                canned-responses
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                settings
+d-----        12/19/2025  12:55 AM                system-tickets
+d-----        12/19/2025  12:55 AM                user-tickets
+-a----        12/11/2025   2:38 PM           7819 api.ts
+-a----        12/11/2025  12:30 PM           6452 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\canned-responses
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:58 PM           1452 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\canned-responses\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:59 PM           8376 CannedResponsesList.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:32 PM           2629 HelpdeskStats.tsx
+-a----        12/11/2025  12:32 PM           3530 SystemTicketsTable.tsx
+-a----        12/11/2025   2:39 PM           5161 UserTicketsTable.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpdesk\settings
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:59 PM            926 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\settings\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:59 PM           6972 HelpdeskSettings.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\system-tickets
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                new
+d-----        12/19/2025  12:55 AM                [ticketId]
+-a----        12/11/2025  12:35 PM           1831 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\system-tickets\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:35 PM           9482 SystemTicketsList.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\system-tickets\new
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:37 PM           2348 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\system-tickets\new\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:40 PM           8187 NewSystemTicketForm.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\system-tickets\[ticketId]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:42 PM           2554 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\system-tickets\[ticketId]\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:44 PM           6041 TicketActions.tsx
+-a----        12/11/2025  12:44 PM           3327 TicketComments.tsx
+-a----        12/11/2025  12:42 PM           2814 TicketDetail.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\user-tickets
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                [ticketId]
+-a----        12/11/2025  12:57 PM           1818 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\user-tickets\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   2:48 PM          11510 UserTicketsList.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\user-tickets\[ticketId]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:57 PM           2960 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\helpde
+    sk\user-tickets\[ticketId]\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:57 PM           7061 TicketConversation.tsx
+-a----        12/11/2025  12:57 PM           6195 UserTicketActions.tsx
+-a----        12/11/2025  12:57 PM           2923 UserTicketDetail.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\login
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/19/2025   1:09 AM            696 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025  10:40 PM                api
+d-----        12/21/2025   8:12 AM                components
+d-----        12/21/2025   8:30 AM                tabs
+-a----        12/21/2025  12:25 AM          29750 page.tsx
+-a----        12/14/2025  10:37 PM           7933 plan.md
+-a----        12/21/2025   8:35 AM          18407 ProjectManagementPanel.tsx
+-a----        12/15/2025  12:02 AM           7305 STRUCTURE.md
+-a----        12/20/2025  10:24 PM           2945 types.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   7:33 PM                clair
+d-----        12/20/2025  10:40 PM                clients
+d-----        12/20/2025   7:33 PM                conventions
+d-----        12/20/2025   7:33 PM                project-docs
+d-----        12/20/2025   7:33 PM                project-knowledge
+d-----        12/20/2025   7:33 PM                project-paths
+d-----        12/20/2025  10:26 PM                projects
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\clair
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   7:33 PM                [...path]
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\clair\[...path]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/16/2025   4:15 PM           3825 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\clients
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025  10:40 PM            870 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\conventions
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   7:33 PM                [id]
+-a----        12/19/2025  12:18 PM           1425 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\conventions\[id]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/19/2025  12:18 PM           1801 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\project-docs
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/17/2025   6:19 PM           3212 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\project-knowledge
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/17/2025   6:22 PM           4404 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\project-paths
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/17/2025   6:26 PM           4019 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\projects
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   7:33 PM                summary
+d-----        12/20/2025   7:33 PM                [id]
+-a----        12/20/2025  10:26 PM           6115 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\projects\summary
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/17/2025   6:32 PM           5393 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\api\projects\[id]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/17/2025   5:29 PM           2551 route.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   7:49 PM          10412 CorrectionMenu.tsx
+-a----        12/15/2025   7:21 PM           5392 ProjectCard.tsx
+-a----        12/20/2025   8:01 PM           6536 ProjectFolderSelector.tsx
+-a----        12/20/2025  11:46 PM          15016 ProjectForm.tsx
+-a----        12/15/2025   7:22 PM           4719 ProjectHeader.tsx
+-a----        12/19/2025  12:18 PM           1588 ProjectTabs.tsx
+-a----        12/21/2025   8:12 AM          12854 SortableProjectRows.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\projec
+    t-management\tabs
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/21/2025   8:28 AM          24674 BugsTab.tsx
+-a----        12/21/2025   8:30 AM          22330 CodeChangesTab.tsx
+-a----        12/20/2025  11:53 PM          12916 ConventionsTab.tsx
+-a----        12/21/2025   8:29 AM          31154 DatabaseTab.tsx
+-a----        12/21/2025   8:27 AM          21758 DocsTab.tsx
+-a----        12/21/2025   8:27 AM          21723 KnowledgeTab.tsx
+-a----        12/16/2025   6:47 AM           8143 KnowledgeTab.tsx.bak
+-a----        12/20/2025  11:54 PM           8906 NotepadTab.tsx
+-a----        12/20/2025   8:34 PM           4723 SchemasTab.tsx
+-a----        12/21/2025   8:28 AM          15217 StructureTab.tsx
+-a----        12/20/2025   8:34 PM           5560 TablesTab.tsx
+-a----        12/21/2025   8:27 AM          13220 TodosTab.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\servers
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                live
+d-----        12/19/2025  12:55 AM                nextbidder
+d-----        12/19/2025  12:55 AM                nexttask
+d-----        12/19/2025  12:55 AM                nexttech
+d-----        12/19/2025  12:55 AM                portals
+d-----        12/19/2025  12:55 AM                sources
+d-----        12/19/2025  12:55 AM                tradelines
+-a----        12/11/2025  11:14 AM            127 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\servers\live
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  11:14 AM            513 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nextbidder
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                credentials
+-a----        12/11/2025  12:16 PM           3331 api.ts
+-a----        12/11/2025  12:16 PM           3633 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nextbidder\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:16 PM           3209 ServerStatus.tsx
+-a----        12/11/2025  12:16 PM           3331 SourcesTable.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nextbidder\credentials
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:16 PM           1470 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nextbidder\credentials\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:16 PM           4581 CredentialsEditor.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\servers\nexttask
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                credentials
+-a----        12/11/2025  12:22 PM           4588 api.ts
+-a----        12/11/2025  12:22 PM           4292 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nexttask\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:22 PM           3353 LeaderboardPanel.tsx
+-a----        12/11/2025  12:22 PM           3833 ServerStatus.tsx
+-a----        12/11/2025  12:22 PM           5967 TasksList.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nexttask\credentials
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:22 PM           1451 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nexttask\credentials\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:22 PM           4430 CredentialsEditor.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\servers\nexttech
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                credentials
+-a----        12/11/2025  12:19 PM           4014 api.ts
+-a----        12/11/2025  12:20 PM           3627 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nexttech\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:20 PM           2797 ServerStatus.tsx
+-a----        12/11/2025  12:20 PM           2308 SopsList.tsx
+-a----        12/11/2025  12:20 PM           3642 WorkflowsList.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nexttech\credentials
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:20 PM           1451 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\nexttech\credentials\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:20 PM           4543 CredentialsEditor.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\servers\portals
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                credentials
+-a----        12/11/2025  12:13 PM           3892 api.ts
+-a----        12/11/2025  12:14 PM           4132 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\portals\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:13 PM           1823 PortalActions.tsx
+-a----        12/11/2025  12:13 PM           6412 PortalsTable.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\portals\credentials
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:14 PM           3121 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\portals\credentials\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:15 PM           3689 PortalCredentialsTable.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\servers\sources
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                credentials
+-a----        12/11/2025  12:18 PM           3579 api.ts
+-a----        12/11/2025  12:18 PM           3738 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\sources\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:18 PM           3782 QueuePanel.tsx
+-a----        12/11/2025  12:18 PM           3214 ServerStatus.tsx
+-a----        12/11/2025  12:18 PM           4977 SourcesList.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\sources\credentials
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:18 PM           1458 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\sources\credentials\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:18 PM           4513 CredentialsEditor.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\tradelines
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                credentials
+d-----        12/19/2025  12:55 AM                [tradeline]
+-a----        12/13/2025   9:50 AM           4931 api.ts
+-a----        12/13/2025   9:50 AM           1007 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\tradelines\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025   9:08 AM           6481 LiveFeedPanel.tsx
+-a----        12/11/2025  12:02 PM           4333 LogsViewer.tsx
+-a----        12/13/2025  10:00 AM           9562 ServerDetailPanel.tsx
+-a----        12/13/2025  10:52 AM           6308 ServerListItem.tsx
+-a----        12/13/2025   9:47 AM           6443 ServerStatsPanel.tsx
+-a----        12/13/2025   9:20 AM          10461 TerminalPanel.tsx
+-a----        12/11/2025  12:02 PM           3761 TradelineActions.tsx
+-a----        12/11/2025  12:02 PM           4122 TradelineCard.tsx
+-a----        12/16/2025  11:24 PM          10193 TradelinesClient.tsx
+-a----        12/12/2025  11:04 PM           6992 TradelinesTable.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\tradelines\credentials
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/13/2025  12:33 AM          33297 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\tradelines\[tradeline]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  12:10 PM           2743 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\server
+    s\tradelines\[tradeline]\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  12:10 PM           9396 TradelineDetail.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\session-logs
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/21/2025   1:25 PM          20692 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\settings
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025   8:27 PM                clients
+d-----        12/19/2025  12:55 AM                profile
+d-----        12/19/2025  12:55 AM                timesheets
+-a----        12/11/2025  11:15 AM            126 page.tsx
+-a----        12/12/2025   3:43 PM           3078 RoleGate.tsx
+-a----        12/19/2025   6:42 AM          10560 UserContext.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\settings\clients
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025   7:50 PM                new
+d-----        12/19/2025   7:56 PM                [id]
+-a----        12/19/2025   8:27 PM           9683 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\settin
+    gs\clients\new
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/19/2025   7:50 PM           9103 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\settin
+    gs\clients\[id]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/19/2025   7:56 PM          28852 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\settings\profile
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  11:15 AM            475 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\settin
+    gs\timesheets
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025  11:15 AM            485 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\studio
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025  12:46 AM                AI Health
+d-----        12/20/2025  12:45 AM                browser
+d-----        12/20/2025  12:45 AM                chat log
+d-----        12/20/2025  12:17 AM                components
+d-----        12/20/2025  12:45 AM                database
+d-----        12/20/2025  12:44 AM                files and docs
+d-----        12/20/2025  10:01 AM                project-managment
+d-----        12/20/2025   7:18 PM                session-hub
+d-----        12/20/2025   5:32 PM                terminal
+-a----        12/20/2025   8:36 PM          14378 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\studio\browser
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025  12:43 AM                components
+d-----        12/20/2025  12:45 AM                hooks
+-a----        12/20/2025  12:45 AM           2386 BrowserPage.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\studio
+    \browser\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025  12:43 AM           3916 BrowserFrame.tsx
+-a----        12/20/2025  12:43 AM           4674 BrowserHeader.tsx
+-a----        12/20/2025  12:43 AM            622 BrowserStatusBar.tsx
+-a----        12/20/2025  12:43 AM            154 index.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\studio
+    \browser\hooks
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025  12:45 AM             92 index.ts
+-a----        12/20/2025  12:44 AM           1513 useBrowser.ts
+-a----        12/20/2025  12:45 AM           4902 useDevServer.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\studio\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/19/2025  11:27 PM           4548 DraggableSidebar.tsx
+-a----        12/20/2025  12:17 AM            270 index.ts
+-a----        12/19/2025  11:27 PM            787 SidebarIcon.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\studio
+    \session-hub
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/20/2025   1:11 PM                components
+d-----        12/21/2025  10:58 AM                hooks
+-a----        12/20/2025   1:16 PM            115 index.ts
+-a----        12/20/2025   7:18 PM          12499 SessionHubPage.tsx
+-a----        12/20/2025   1:14 PM           2067 types.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\studio
+    \session-hub\hooks
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025   1:15 PM             58 index.ts
+-a----        12/21/2025  10:58 AM           9759 usePipelineStatus.ts
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\studio\terminal
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025  10:02 AM           4341 chatMessageFilter.ts
+-a----        12/20/2025   5:32 PM          16612 ClaudeTerminal.tsx
+-a----        12/20/2025   5:32 PM            905 constants.ts
+-a----        12/20/2025  10:04 AM            236 index.ts
+-a----        12/20/2025  11:57 AM           2961 terminalInput.ts
+-a----        12/20/2025  10:01 AM           1706 types.ts
+-a----        12/20/2025   2:26 PM           2650 useChadTranscription.ts
+-a----        12/20/2025  10:02 AM           2205 useSusanBriefing.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                members
+d-----        12/19/2025  12:55 AM                permissions
+d-----        12/19/2025  12:55 AM                reports
+d-----        12/19/2025  12:55 AM                roles
+-a----        12/12/2025   7:34 PM           6416 api.ts
+-a----        12/11/2025   1:06 PM           3803 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:30 PM           3310 TeamMembersList.tsx
+-a----        12/12/2025   7:30 PM           1530 TeamStats.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\members
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+d-----        12/19/2025  12:55 AM                new
+d-----        12/19/2025  12:55 AM                [id]
+-a----        12/12/2025   7:41 PM           2468 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\m
+    embers\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:49 PM           6226 MembersTable.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\members\new
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:40 PM           5604 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\members\[id]
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:54 PM          13028 page.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\permissions
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025   2:26 PM           1559 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\p
+    ermissions\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   2:27 PM           4999 PermissionsMatrix.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\reports
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025   2:27 PM           1768 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\r
+    eports\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   2:27 PM           3843 ActivityReport.tsx
+-a----        12/11/2025   2:27 PM           3004 AuditLogPanel.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\roles
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/12/2025   7:48 PM           1800 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\team\r
+    oles\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/12/2025   7:28 PM           3851 RolesList.tsx
+    Directory:
+    C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\app\tickets
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        12/19/2025  12:55 AM                components
+-a----        12/11/2025  11:14 AM            479 page.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\components
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025  12:48 AM           1257 AITeamChat.tsx
+-a----        12/11/2025  10:40 PM          21169 ChatDropdown.tsx
+-a----        12/19/2025   1:10 AM           3437 LogoutButton.tsx
+-a----        12/21/2025   8:09 AM          11971 Navigation.tsx
+-a----        12/12/2025   3:37 PM           4379 NoAccess.tsx
+-a----        12/11/2025   9:04 PM           6429 PortalSwitcher.tsx
+-a----        12/12/2025   2:09 PM           7449 ProductionStatusDropdown.tsx
+-a----        12/12/2025  11:52 PM          16666 ServerDetailPanel.tsx
+-a----        12/12/2025   1:18 PM          10772 ServerStatusIndicator.tsx
+-a----        12/19/2025   7:46 PM          12085 SettingsDropdown.tsx
+-a----        12/20/2025   8:18 PM          39047 Sidebar.tsx
+-a----        12/11/2025   9:00 PM          15481 TimeClockDropdown.tsx
+-a----        12/11/2025   9:30 PM          18365 UniversalDashboard.tsx
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\config
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   3:46 PM           5577 tradelines.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\lib
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/11/2025   9:12 PM          29319 api.ts
+-a----        12/19/2025   1:08 AM           1216 auth-client.ts
+-a----        12/19/2025   1:08 AM           1395 auth.ts
+-a----        12/20/2025  12:42 AM          10730 db.ts
+-a----        12/12/2025   8:36 PM           3581 roles.ts
+-a----        12/12/2025   3:51 PM           1849 supabase.ts
+    Directory: C:\Projects\Kodiack-Studio\kodiack-dashboard-5500\src\types
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        12/20/2025  12:42 AM           2065 index.ts

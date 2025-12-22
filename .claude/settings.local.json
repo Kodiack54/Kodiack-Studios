@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "kodiack-studio"
+  ],
+  "enableAllProjectMcpServers": true
+}

@@ -125,7 +125,7 @@ export async function POST(
       );
     }
 
-    return NextResponse.json({ success: true, id: data?.id });
+    return NextResponse.json({ success: true, id: (data as any)?.id });
 
   } catch (error: any) {
     console.error('API error:', error.message);

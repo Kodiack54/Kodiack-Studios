@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "kodiack-studio": {
+      "command": "node",
+      "args": [
+        "C:\\Projects\\Kodiack-Studio\\kodiack-studio\\src\\index.js"
+      ],
+      "env": {
+        "SUSAN_URL": "http://161.35.229.220:5403",
+        "CHAD_WS_URL": "ws://161.35.229.220:5401"
+      }
+    }
+  }
+}

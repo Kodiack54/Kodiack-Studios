@@ -387,8 +387,13 @@ function SessionItem({ session }: { session: Session }) {
 
   // Display logic: show meaningful names based on source
   const getDisplayName = () => {
-    // AI session types
+    // AI session types - differentiate by terminal port
     if (session.source_type === 'internal_claude') {
+      const port = session.terminal_port;
+      if (port === 5400) return 'Internal Claude (Main)';
+      if (port === 5410) return 'Internal Claude (Dev Team 1)';
+      if (port === 5420) return 'Internal Claude (Dev Team 2)';
+      if (port === 5430) return 'Internal Claude (Dev Team 3)';
       return 'Internal Claude';
     }
     if (session.source_type === 'external') {
