@@ -49,7 +49,8 @@ export async function GET(
       .order('created_at', { ascending: false });
 
     if (projectPath) {
-      query = query.eq('project_path', projectPath);
+      // Use LIKE for parent projects to accumulate all children
+      query = query.like('project_path', projectPath + '%');
     }
 
     const url = new URL(request.url);
