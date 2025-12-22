@@ -70,7 +70,15 @@ function ProjectManagementContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectSlug = searchParams.get('project');
-  const { selectedClient } = useClient();
+  const allClients = searchParams.get('allClients');
+  const { selectedClient, setSelectedClient } = useClient();
+
+  // Clear client filter when coming from Session Logs with allClients=true
+  useEffect(() => {
+    if (allClients === 'true' && selectedClient !== null) {
+      setSelectedClient(null);
+    }
+  }, [allClients, selectedClient, setSelectedClient]);
 
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);

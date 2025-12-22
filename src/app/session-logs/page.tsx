@@ -475,7 +475,7 @@ function ProjectCard({ project }: { project: Project }) {
   const total = project.todos + project.knowledge + project.bugs;
   return (
     <Link
-      href={`/project-management?project=${project.slug}`}
+      href={`/project-management?project=${project.slug}&allClients=true`}
       className="block p-2 rounded border border-gray-700 bg-gray-800/50 hover:bg-gray-700/50 hover:border-gray-500 transition-colors cursor-pointer"
     >
       <div className="flex items-center justify-between">
