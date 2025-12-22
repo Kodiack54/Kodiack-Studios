@@ -70,11 +70,12 @@ export async function GET(
 
     // Return data in format tabs expect
     const responseKey = endpoint.endsWith('s') ? endpoint : `${endpoint}s`;
+    const dataArray = Array.isArray(data) ? data : [];
     return NextResponse.json({
       success: true,
-      [responseKey]: data || [],
-      entries: data || [], // For journal/knowledge tabs that expect 'entries'
-      grouped: groupByType(data || [], endpoint), // For tabs with sub-categories
+      [responseKey]: dataArray,
+      entries: dataArray, // For journal/knowledge tabs that expect 'entries'
+      grouped: groupByType(dataArray, endpoint), // For tabs with sub-categories
     });
 
   } catch (error: any) {
