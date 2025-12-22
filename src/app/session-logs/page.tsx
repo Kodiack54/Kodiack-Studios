@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import Link from 'next/link';
 
 // ALL data comes from DATABASE - no HTTP calls to workers
 // Workers write TO database, dashboard reads FROM database
@@ -469,11 +470,14 @@ function BucketRow({ name, count }: { name: string; count: number }) {
   );
 }
 
-// Project card for Susan's column
+// Project card for Susan's column - clickable to project management page
 function ProjectCard({ project }: { project: Project }) {
   const total = project.todos + project.knowledge + project.bugs;
   return (
-    <div className="p-2 rounded border border-gray-700 bg-gray-800/50 hover:bg-gray-700/50 transition-colors">
+    <Link
+      href={`/project-management?project=${project.slug}`}
+      className="block p-2 rounded border border-gray-700 bg-gray-800/50 hover:bg-gray-700/50 hover:border-gray-500 transition-colors cursor-pointer"
+    >
       <div className="flex items-center justify-between">
         <div className="font-medium text-white text-sm truncate">{project.name}</div>
         {total > 0 && (
@@ -491,7 +495,7 @@ function ProjectCard({ project }: { project: Project }) {
           Bugs: {project.bugs}
         </span>
       </div>
-    </div>
+    </Link>
   );
 }
 
