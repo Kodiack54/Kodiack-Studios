@@ -9,8 +9,8 @@ import { Pool, PoolClient } from 'pg';
 
 // Create connection pool
 const pool = new Pool({
-  host: process.env.PG_HOST || 'localhost',
-  port: parseInt(process.env.PG_PORT || '5432'),
+  host: process.env.PG_HOST || '161.35.229.220',
+  port: parseInt(process.env.PG_PORT || '9432'),
   database: process.env.PG_DATABASE || 'kodiack_ai',
   user: process.env.PG_USER || 'kodiack_admin',
   password: process.env.PG_PASSWORD || 'K0d1ack_Stud10_2024',
