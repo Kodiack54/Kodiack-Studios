@@ -48,8 +48,19 @@ const ENV_COLORS = {
   prod: { bg: 'bg-green-600/20', text: 'text-green-400', border: 'border-green-500', label: 'Prod' },
 };
 
-// Detect environment from project name/slug
-function detectEnvironment(project: Project): 'dev' | 'test' | 'prod' | null {
+// Detect environment from parent port configuration or project name
+function detectEnvironment(project: Project, parent?: Project): 'dev' | 'test' | 'prod' | null {
+  // If this is a child with a parent, check if child's port matches parent's port slots
+  if (parent) {
+    const childPort = project.port_dev || project.port_test || project.port_prod;
+    if (childPort) {
+      if (parent.port_dev && childPort === parent.port_dev) return 'dev';
+      if (parent.port_test && childPort === parent.port_test) return 'test';
+      if (parent.port_prod && childPort === parent.port_prod) return 'prod';
+    }
+  }
+
+  // Fallback: detect from project name/slug
   const name = (project.name + ' ' + project.slug).toLowerCase();
   if (name.includes('prod') || name.includes('production') || name.includes('live')) return 'prod';
   if (name.includes('test') || name.includes('staging') || name.includes('qa')) return 'test';
@@ -412,10 +423,10 @@ function ProjectManagementContent() {
     const isExpanded = expandedParents.has(project.id);
     const hasChildren = children.length > 0;
 
-    // Aggregate child info
-    const devChildren = children.filter(c => detectEnvironment(c) === 'dev');
-    const testChildren = children.filter(c => detectEnvironment(c) === 'test');
-    const prodChildren = children.filter(c => detectEnvironment(c) === 'prod');
+    // Aggregate child info - use parent port slots to determine environment
+    const devChildren = children.filter(c => detectEnvironment(c, project) === 'dev');
+    const testChildren = children.filter(c => detectEnvironment(c, project) === 'test');
+    const prodChildren = children.filter(c => detectEnvironment(c, project) === 'prod');
 
     // Get all ports from children
     const childDevPorts = children.filter(c => c.port_dev).map(c => c.port_dev);
@@ -531,7 +542,7 @@ function ProjectManagementContent() {
           <div className="ml-8 mt-1 space-y-1 border-l-2 border-gray-700 pl-4">
             <SortableContext items={children.map(c => c.id)} strategy={verticalListSortingStrategy}>
               {children.map(child => (
-                <SortableChildRow key={child.id} child={child} />
+                <SortableChildRow key={child.id} child={child} parent={project} />
               ))}
             </SortableContext>
           </div>
@@ -541,7 +552,7 @@ function ProjectManagementContent() {
   };
 
   // Sortable Child Row Component
-  const SortableChildRow = ({ child }: { child: Project }) => {
+  const SortableChildRow = ({ child, parent }: { child: Project; parent: Project }) => {
     const {
       attributes,
       listeners,
@@ -557,7 +568,8 @@ function ProjectManagementContent() {
       opacity: isDragging ? 0.5 : 1,
     };
 
-    const env = detectEnvironment(child);
+    // Use parent's port configuration to determine child environment
+    const env = detectEnvironment(child, parent);
     const envColor = env ? ENV_COLORS[env] : null;
 
     return (
