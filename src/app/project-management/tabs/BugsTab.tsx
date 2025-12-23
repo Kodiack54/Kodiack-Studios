@@ -34,6 +34,7 @@ interface BugReport {
 interface BugsTabProps {
   projectPath: string;
   projectId: string;
+  projectName?: string;
   isParent?: boolean;
   childProjectIds?: string[];
 }
@@ -53,7 +54,7 @@ const STATUS_CONFIG = {
   duplicate: { label: 'Duplicate', color: 'bg-purple-600/20 text-purple-400', icon: Bug },
 };
 
-export default function BugsTab({ projectPath, projectId, isParent, childProjectIds }: BugsTabProps) {
+export default function BugsTab({ projectPath, projectId, projectName, isParent, childProjectIds }: BugsTabProps) {
   const [projectPaths, setProjectPaths] = useState<ProjectPath[]>([]);
   const [selectedPath, setSelectedPath] = useState<ProjectPath | null>(null);
   const [bugs, setBugs] = useState<BugReport[]>([]);
@@ -326,7 +327,7 @@ export default function BugsTab({ projectPath, projectId, isParent, childProject
             <div className="p-3 border-b border-gray-700 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Bug className="w-5 h-5 text-red-400" />
-                <h3 className="text-white font-semibold">{selectedPath.label} Bugs</h3>
+                <h3 className="text-white font-semibold">{projectName || selectedPath?.label || "Project"} Bugs</h3>
                 <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-0.5">
                   {(['all', 'open', 'fixed'] as const).map(f => (
                     <button
