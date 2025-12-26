@@ -238,6 +238,17 @@ export default function Sidebar() {
               <span>🔥</span>
               <span>The Forge</span>
             </Link>
+            <Link
+              href="/ai-team"
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname?.startsWith('/ai-team')
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              <span>🤖</span>
+              <span>AI Team</span>
+            </Link>
           </div>
         )}
 
