@@ -41,7 +41,7 @@ export default function TheForgePage() {
 
   const fetchEntries = async () => {
     try {
-      const res = await fetch('/api/the-forge');
+      const res = await fetch('/the-forge/api');
       const data = await res.json();
       setEntries(data);
     } catch (err) {
