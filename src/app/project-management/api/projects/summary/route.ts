@@ -46,11 +46,11 @@ async function getProjectSummary(
   ]);
 
   const [todos, bugs, knowledge, docs, conventions] = await Promise.all([
-    countWithChildren("dev_ai_todos", allIds, "status NOT IN ('flagged', 'pending')"),
-    countWithChildren("dev_ai_bugs", allIds, "status NOT IN ('flagged', 'pending')"),
-    countWithChildren("dev_ai_knowledge", allIds, "status NOT IN ('flagged', 'pending')"),
-    countWithChildren("dev_ai_docs", allIds, "status NOT IN ('flagged', 'pending')"),
-    countWithChildren("dev_ai_conventions", allIds, "1=1"), // All conventions
+    countWithChildren("dev_ai_todos", allIds, "1=1"),
+    countWithChildren("dev_ai_bugs", allIds, "1=1"),
+    countWithChildren("dev_ai_knowledge", allIds, "1=1"),
+    countWithChildren("dev_ai_docs", allIds, "1=1"),
+    countWithChildren("dev_ai_conventions", allIds, "1=1"),
   ]);
 
   return {
