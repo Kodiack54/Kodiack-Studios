@@ -224,6 +224,7 @@ function ProjectManagementContent() {
 
     const projectPath = selectedProject.server_path || '';
     const isParent = selectedProject.is_parent || false;
+    const parentId = selectedProject.parent_id || undefined;
     const childProjectIds = isParent
       ? projects.filter(p => p.parent_id === selectedProject.id).map(p => p.id)
       : [];
@@ -232,7 +233,7 @@ function ProjectManagementContent() {
       case 'phases':
         return <PhasesTab projectPath={projectPath} projectId={selectedProject.id} projectName={selectedProject.name} isParent={isParent} childProjectIds={childProjectIds} />;
       case 'todos':
-        return <TodosTab projectPath={projectPath} projectId={selectedProject.id} projectName={selectedProject.name} isParent={isParent} childProjectIds={childProjectIds} />;
+        return <TodosTab projectPath={projectPath} projectId={selectedProject.id} projectName={selectedProject.name} isParent={isParent} childProjectIds={childProjectIds} parentId={parentId} />;
       case 'knowledge':
         return <KnowledgeTab projectPath={projectPath} projectId={selectedProject.id} projectName={selectedProject.name} isParent={isParent} childProjectIds={childProjectIds} />;
       case 'docs':

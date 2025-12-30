@@ -27,6 +27,7 @@ interface TodosTabProps {
   projectName?: string;
   isParent?: boolean;
   childProjectIds?: string[];
+  parentId?: string;
 }
 
 const scrollbarStyles = `
@@ -36,27 +37,42 @@ const scrollbarStyles = `
   .scrollbar-blue::-webkit-scrollbar-thumb:hover { background: #2563eb; }
 `;
 
-export default function TodosTab({ projectPath, projectId, projectName }: TodosTabProps) {
+export default function TodosTab({ projectPath, projectId, projectName, isParent, childProjectIds, parentId }: TodosTabProps) {
   const [phases, setPhases] = useState<Phase[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'kanban' | 'unassigned'>('kanban');
   const [assigningTodo, setAssigningTodo] = useState<string | null>(null);
 
-  useEffect(() => { fetchData(); }, [projectPath, projectId]);
+  useEffect(() => { fetchData(); }, [projectPath, projectId, isParent, childProjectIds, parentId]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const cleanPath = projectPath.startsWith('/') ? projectPath.slice(1) : projectPath;
-      const [phasesRes, todosRes] = await Promise.all([
-        fetch(`/project-management/api/phases/${projectId}`),
-        fetch(`/project-management/api/clair/todos/${projectId}`)
-      ]);
+      // For phases: children use parent's phases, parents/orphans use their own
+      const phaseProjectId = (!isParent && parentId) ? parentId : projectId;
+      const phasesRes = await fetch(`/project-management/api/phases/${phaseProjectId}`);
       const phasesData = await phasesRes.json();
-      const todosData = await todosRes.json();
       if (phasesData.success) setPhases(phasesData.phases || []);
-      if (todosData.success) setTodos(todosData.todos || []);
+
+      // For todos: parents aggregate all children, children/orphans use their own
+      let allTodos: Todo[] = [];
+      if (isParent && childProjectIds && childProjectIds.length > 0) {
+        // Parent: fetch todos from all children
+        const todoPromises = childProjectIds.map(cid =>
+          fetch(`/project-management/api/clair/todos/${cid}`).then(r => r.json())
+        );
+        const results = await Promise.all(todoPromises);
+        results.forEach(r => {
+          if (r.success && r.todos) allTodos.push(...r.todos);
+        });
+      } else {
+        // Child or orphan: fetch own todos
+        const todosRes = await fetch(`/project-management/api/clair/todos/${projectId}`);
+        const todosData = await todosRes.json();
+        if (todosData.success) allTodos = todosData.todos || [];
+      }
+      setTodos(allTodos);
     } catch (e) { console.error(e); }
     finally { setIsLoading(false); }
   };
