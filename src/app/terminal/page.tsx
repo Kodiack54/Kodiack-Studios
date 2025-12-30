@@ -30,6 +30,7 @@ export default function TerminalPage() {
   const messagesRef = useRef<HTMLDivElement>(null);
   const reconnectRef = useRef<NodeJS.Timeout | null>(null);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Add message to feed
   const addMessage = useCallback((type: TerminalMessage['type'], content: string, role?: string) => {
@@ -85,6 +86,14 @@ export default function TerminalPage() {
           clientType: 'dashboard',
           name: 'Terminal Monitor'
         }));
+
+        // Start heartbeat ping every 25 seconds to keep connection alive
+        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+          }
+        }, 25000);
       };
 
       ws.onmessage = (event) => {
@@ -132,6 +141,9 @@ export default function TerminalPage() {
         setWsStatus('disconnected');
         setIsConnected(false);
         addMessage('error', 'Disconnected from terminal server');
+
+        // Clear heartbeat ping
+        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
         // Auto-reconnect after 5 seconds
         if (reconnectRef.current) clearTimeout(reconnectRef.current);
@@ -200,6 +212,7 @@ export default function TerminalPage() {
       if (wsRef.current) wsRef.current.close();
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
       if (statusIntervalRef.current) clearInterval(statusIntervalRef.current);
+      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
     };
   }, []);
 
