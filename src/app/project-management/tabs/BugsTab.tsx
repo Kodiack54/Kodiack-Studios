@@ -148,11 +148,24 @@ export default function BugsTab({ projectPath, projectId, projectName, isParent,
   const fetchBugs = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/project-management/api/clair/bugs/${projectId}`);
-      const data = await response.json();
-      if (data.success) {
-        setBugs(data.bugs || []);
+      // If parent, fetch bugs from all children
+      const projectIdsToFetch = isParent && childProjectIds?.length
+        ? childProjectIds
+        : [projectId];
+
+      const allBugs: BugReport[] = [];
+
+      for (const pid of projectIdsToFetch) {
+        const response = await fetch(`/project-management/api/clair/bugs/${pid}`);
+        const data = await response.json();
+        if (data.success && data.bugs) {
+          allBugs.push(...data.bugs);
+        }
       }
+
+      // Sort by created_at descending
+      allBugs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setBugs(allBugs);
     } catch (error) {
       console.error('Error fetching bugs:', error);
     } finally {

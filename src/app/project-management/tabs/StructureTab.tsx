@@ -383,9 +383,12 @@ export default function StructureTab({ projectId, projectName, isParent, childPr
   const [localExpandedFolders, setLocalExpandedFolders] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchStructure();
+    // For parent views, wait for child selection before fetching
+    // For child views, fetch directly
     if (isParent && childProjectIds?.length) {
       fetchChildProjects();
+    } else if (!isParent) {
+      fetchStructure();
     }
   }, [projectId, isParent, childProjectIds]);
 
