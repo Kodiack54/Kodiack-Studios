@@ -94,6 +94,35 @@ export async function GET(
   }
 }
 
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  const { path } = await params;
+  const [endpoint, projectId] = path;
+  const tableName = ENDPOINT_TO_TABLE[endpoint];
+
+  if (!tableName) {
+    return NextResponse.json({ success: false, error: 'Unknown endpoint' }, { status: 400 });
+  }
+
+  try {
+    const body = await request.json();
+    body.project_id = projectId;
+    body.created_at = new Date().toISOString();
+    body.updated_at = new Date().toISOString();
+
+    const { data, error } = await db.from(tableName).insert(body).select();
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, data });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }

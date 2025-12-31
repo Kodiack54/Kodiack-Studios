@@ -179,10 +179,14 @@ export default function KnowledgeTab({ projectPath, projectId, projectName, isPa
         const journalRes = await fetch(`/project-management/api/clair/journal/${pid}`);
         const journalData = await journalRes.json();
         if (journalData.success && journalData.entries) {
-          const mappedJournal = journalData.entries.map((e: any) => ({
-            ...e,
-            category: e.entry_type || 'Journal',
-          }));
+          const mappedJournal = journalData.entries.map((e: any) => {
+            // Normalize entry_type to match tab categories
+            let category = e.entry_type || 'Journal';
+            if (category === 'worklog' || category === 'work_log') {
+              category = 'Work Log';
+            }
+            return { ...e, category };
+          });
           allEntries.push(...mappedJournal);
         }
 

@@ -19,11 +19,31 @@ interface ServerStatus {
   restarts?: number;
 }
 
+const STORAGE_KEY = 'terminal-messages';
+const STORAGE_COUNT_KEY = 'terminal-message-count';
+
 export default function TerminalPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [server5400Status, setServer5400Status] = useState<ServerStatus>({ online: false });
-  const [messages, setMessages] = useState<TerminalMessage[]>([]);
-  const [messageCount, setMessageCount] = useState(0);
+  const [messages, setMessages] = useState<TerminalMessage[]>(() => {
+    // Load from localStorage on initial render
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch { return []; }
+    }
+    return [];
+  });
+  const [messageCount, setMessageCount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_COUNT_KEY);
+        return saved ? parseInt(saved, 10) : 0;
+      } catch { return 0; }
+    }
+    return 0;
+  });
   const [isRestarting, setIsRestarting] = useState(false);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const wsRef = useRef<WebSocket | null>(null);
@@ -216,6 +236,14 @@ export default function TerminalPage() {
     };
   }, []);
 
+  // Save messages to localStorage when they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      localStorage.setItem(STORAGE_COUNT_KEY, messageCount.toString());
+    } catch { /* localStorage full or unavailable */ }
+  }, [messages, messageCount]);
+
   // Auto-scroll messages
   useEffect(() => {
     if (messagesRef.current) {
@@ -383,7 +411,12 @@ export default function TerminalPage() {
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">{messages.length} messages</span>
             <button
-              onClick={() => setMessages([])}
+              onClick={() => {
+                setMessages([]);
+                setMessageCount(0);
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_COUNT_KEY);
+              }}
               className="text-xs text-gray-500 hover:text-white"
             >
               Clear

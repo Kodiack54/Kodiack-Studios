@@ -3,20 +3,20 @@ import { NextRequest, NextResponse } from 'next/server';
 // AI Droplet where workers run
 const AI_DROPLET = process.env.AI_DROPLET_URL || 'http://161.35.229.220';
 
-// PM2 control endpoint (needs to be set up on droplet)
-const PM2_CONTROL_PORT = 5500; // Dashboard handles PM2 commands
+// PM2 control endpoint - Susan handles PM2 commands
+const PM2_CONTROL_PORT = 5403;
 
 // Worker PM2 name mapping
 const PM2_NAMES: Record<string, string> = {
   chad: 'chad-5401',
-  jen: 'jen-5402',
+  jen: 'ai-jen-5402',
   susan: 'susan-5403',
   clair: 'clair-5404',
   mike: 'mike-5405',
   tiffany: 'tiffany-5406',
   ryan: 'ryan-5407',
   terminal: 'terminal-server-5400',
-  dashboard: 'kodiack-dashboard-5500',
+  transcripts: 'transcripts-9500',
 };
 
 export async function POST(request: NextRequest) {
