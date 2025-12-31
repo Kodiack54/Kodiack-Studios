@@ -464,8 +464,8 @@ export default function BugsTab({ projectPath, projectId, projectName, isParent,
               ) : (
                 <div className="space-y-2">
                   {filteredBugs.map(bug => {
-                    const severityCfg = SEVERITY_CONFIG[bug.severity];
-                    const statusCfg = STATUS_CONFIG[bug.status];
+                    const severityCfg = SEVERITY_CONFIG[bug.severity] || SEVERITY_CONFIG.medium;
+                    const statusCfg = STATUS_CONFIG[bug.status] || STATUS_CONFIG.open;
                     const StatusIcon = statusCfg.icon;
                     return (
                       <div key={bug.id} className={`bg-gray-750 border rounded-lg p-3 group ${severityCfg.color.split(' ')[2]}`}>
