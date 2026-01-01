@@ -108,9 +108,9 @@ export default function DocsTab({ projectPath, projectId, projectName, isParent,
 
   const fetchProjectPaths = async () => {
     try {
-      // If parent, fetch paths for all child projects
+      // If parent, fetch paths for parent + all child projects
       const projectIdsToFetch = isParent && childProjectIds?.length
-        ? childProjectIds
+        ? [projectId, ...childProjectIds]
         : [projectId];
 
       const allPaths: ProjectPath[] = [];

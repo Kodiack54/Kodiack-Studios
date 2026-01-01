@@ -86,9 +86,9 @@ export default function BugsTab({ projectPath, projectId, projectName, isParent,
 
   const fetchProjectPaths = async () => {
     try {
-      // If parent, fetch paths for all child projects
+      // If parent, fetch paths for parent + all child projects
       const projectIdsToFetch = isParent && childProjectIds?.length
-        ? childProjectIds
+        ? [projectId, ...childProjectIds]
         : [projectId];
 
       const allPaths: ProjectPath[] = [];
@@ -149,9 +149,9 @@ export default function BugsTab({ projectPath, projectId, projectName, isParent,
   const fetchBugs = async () => {
     setIsLoading(true);
     try {
-      // If parent, fetch bugs from all children
+      // If parent, fetch bugs from parent + all children
       const projectIdsToFetch = isParent && childProjectIds?.length
-        ? childProjectIds
+        ? [projectId, ...childProjectIds]
         : [projectId];
 
       const allBugs: BugReport[] = [];

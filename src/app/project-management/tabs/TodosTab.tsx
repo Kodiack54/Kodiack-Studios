@@ -55,12 +55,13 @@ export default function TodosTab({ projectPath, projectId, projectName, isParent
       const phasesData = await phasesRes.json();
       if (phasesData.success) setPhases(phasesData.phases || []);
 
-      // For todos: parents aggregate all children, children/orphans use their own
+      // For todos: parents aggregate parent + all children, children/orphans use their own
       let allTodos: Todo[] = [];
       if (isParent && childProjectIds && childProjectIds.length > 0) {
-        // Parent: fetch todos from all children
-        const todoPromises = childProjectIds.map(cid =>
-          fetch(`/project-management/api/todos?project_id=${cid}`).then(r => r.json())
+        // Parent: fetch from parent itself + all children
+        const allIds = [projectId, ...childProjectIds];
+        const todoPromises = allIds.map(pid =>
+          fetch(`/project-management/api/todos?project_id=${pid}`).then(r => r.json())
         );
         const results = await Promise.all(todoPromises);
         results.forEach(r => {
