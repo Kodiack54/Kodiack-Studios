@@ -15,6 +15,7 @@ const AI_TEAM = [
   { id: 'mike', name: 'Mike', port: 5405, role: 'QA', title: 'Quality Assurance', model: 'openai', dailyLimit: 0.50, color: 'green' },
   { id: 'tiffany', name: 'Tiffany', port: 5406, role: 'QA', title: 'Quality Assurance', model: 'openai', dailyLimit: 0.50, color: 'yellow' },
   { id: 'ryan', name: 'Ryan', port: 5407, role: 'Roadmap', title: 'Product Operations', model: 'openai', dailyLimit: 0.50, color: 'orange' },
+  { id: 'jason', name: 'Jason', port: 5408, role: 'Schedule', title: 'Extraction Scheduler', model: 'rules', dailyLimit: 0.00, color: 'red' },
 ];
 
 // Infrastructure services
@@ -50,7 +51,7 @@ export default function AITeamPage() {
   const [workerUsage, setWorkerUsage] = useState<Record<string, WorkerUsage>>({});
   const [pipelineStats, setPipelineStats] = useState<PipelineStats | null>(null);
   const [totalCostToday, setTotalCostToday] = useState(0);
-  const [dailyBudget] = useState(3.50); // Total daily budget (7 workers × $0.50)
+  const [dailyBudget] = useState(3.50); // Total daily budget (8 workers, Jason is rules-based)
   const [loading, setLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -279,8 +280,8 @@ export default function AITeamPage() {
                   <div className="flex items-center justify-between mb-0.5">
                     <div className="flex items-center gap-1">
                       <span className="text-gray-300">{worker.name}</span>
-                      <span className={`px-1 rounded text-[10px] ${worker.model === 'claude' ? 'bg-purple-900/50 text-purple-400' : 'bg-green-900/50 text-green-400'}`}>
-                        {worker.model === 'claude' ? 'Claude' : 'GPT'}
+                      <span className={`px-1 rounded text-[10px] ${worker.model === 'claude' ? 'bg-purple-900/50 text-purple-400' : worker.model === 'rules' ? 'bg-red-900/50 text-red-400' : 'bg-green-900/50 text-green-400'}`}>
+                        {worker.model === 'claude' ? 'Claude' : worker.model === 'rules' ? 'Rules' : 'GPT'}
                       </span>
                     </div>
                     <span className={overBudget ? 'text-red-400' : nearBudget ? 'text-yellow-400' : 'text-gray-500'}>
@@ -407,6 +408,7 @@ function WorkerRow({ worker, status, usage, actionLoading, onControl }: {
     green: 'border-l-green-500',
     yellow: 'border-l-yellow-500',
     orange: 'border-l-orange-500',
+    red: 'border-l-red-500',
   };
 
   return (
@@ -421,8 +423,8 @@ function WorkerRow({ worker, status, usage, actionLoading, onControl }: {
       <div className="w-16 text-xs text-gray-500">{worker.role}</div>
 
       {/* Model Badge */}
-      <div className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${worker.model === 'claude' ? 'bg-purple-900/50 text-purple-400' : 'bg-green-900/50 text-green-400'}`}>
-        {worker.model === 'claude' ? 'Claude' : 'GPT'}
+      <div className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${worker.model === 'claude' ? 'bg-purple-900/50 text-purple-400' : worker.model === 'rules' ? 'bg-red-900/50 text-red-400' : 'bg-green-900/50 text-green-400'}`}>
+        {worker.model === 'claude' ? 'Claude' : worker.model === 'rules' ? 'Rules' : 'GPT'}
       </div>
 
       {/* Port */}

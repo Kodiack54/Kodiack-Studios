@@ -76,6 +76,8 @@ interface Project {
 }
 
 interface SusanProject {
+  isParent?: boolean;
+  children?: SusanProject[];
   id: string;
   name: string;
   todos: number;      // status = 'unassigned'
@@ -106,6 +108,7 @@ export default function SessionLogsPage() {
   const [clairTotals, setClairTotals] = useState({ todos: 0, bugs: 0, knowledge: 0, structure: 0, total: 0 });
   const [projectOrder, setProjectOrder] = useState<string[]>([]); // Custom order for projects
   const [draggedProject, setDraggedProject] = useState<string | null>(null);
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [teamStatuses, setTeamStatuses] = useState<Record<string, TeamStatus>>({});
   const [loading, setLoading] = useState(false);
@@ -171,9 +174,65 @@ export default function SessionLogsPage() {
         setJenBuckets(extractionsData.buckets || {});
       }
 
-      if (susanData.success) {
-        setSusanProjects(susanData.projects || []);
-        setSusanTotals(susanData.totals || { todos: 0, bugs: 0, knowledge: 0, structure: 0, total: 0 });
+      // Susan totals from by-project (truth for everything, including unrouted)
+      if (susanData.ok && susanData.groups) {
+        const allItems = susanData.groups.map((g: any) => ({
+          todos: g.counts?.todos || 0,
+          bugs: g.counts?.bugs || 0,
+          knowledge: (g.counts?.knowledge || 0) + (g.counts?.docs || 0) + (g.counts?.snippets || 0),
+          structure: g.counts?.conventions || 0,
+          total: g.counts?.total || 0,
+        }));
+        const totals = allItems.reduce((acc: any, p: any) => ({
+          todos: acc.todos + p.todos,
+          bugs: acc.bugs + p.bugs,
+          knowledge: acc.knowledge + p.knowledge,
+          structure: acc.structure + p.structure,
+          total: acc.total + p.total,
+        }), { todos: 0, bugs: 0, knowledge: 0, structure: 0, total: 0 });
+        setSusanTotals(totals);
+      }
+
+      // Susan hierarchy from by-parent (real recursive rollups)
+      if (projectsListData.success && projectsListData.projects) {
+        const parents = projectsListData.projects.filter((p: any) => p.is_parent);
+        
+        const rollups = await Promise.all(
+          parents.map(async (p: any) => {
+            try {
+              const res = await fetch(`/session-logs/api/extractions/by-parent?parent_id=${p.id}`, { cache: 'no-store' });
+              if (!res.ok) return null;
+              const r = await res.json();
+              if (!r.ok) return null;
+              
+              return {
+                id: p.id,
+                name: p.name,
+                todos: r.totals?.todos || 0,
+                bugs: r.totals?.bugs || 0,
+                knowledge: r.totals?.knowledge || 0,
+                structure: r.totals?.conventions || 0,
+                total: r.totals?.total || 0,
+                isParent: true,
+                children: (r.children || []).map((c: any) => ({
+                  id: c.project_id,
+                  name: c.name,
+                  todos: c.counts?.todos || 0,
+                  bugs: c.counts?.bugs || 0,
+                  knowledge: c.counts?.knowledge || 0,
+                  structure: c.counts?.conventions || 0,
+                  total: c.counts?.total || 0,
+                })),
+              };
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        const validRollups = rollups.filter((r): r is SusanProject => r !== null);
+        validRollups.sort((a, b) => a.name.localeCompare(b.name));
+        setSusanProjects(validRollups);
       }
 
       if (clairData.success) {
@@ -444,9 +503,9 @@ export default function SessionLogsPage() {
           <PipelineArrow />
           <SessionStage label="Processed" value={sessionTotals.processed} color="blue" owner="Jen" />
           <PipelineArrow />
-          <SessionStage label="Extracted" value={sessionTotals.extracted} color="purple" owner="Claude" />
-          <PipelineArrow />
           <SessionStage label="Cleaned" value={sessionTotals.cleaned} color="teal" owner="Susan" />
+          <PipelineArrow />
+          <SessionStage label="Extracted" value={sessionTotals.extracted} color="purple" owner="Claude" />
           <PipelineArrow />
           <SessionStage label="Archived" value={sessionTotals.archived} color="green" owner="Susan" />
         </div>
@@ -517,6 +576,13 @@ export default function SessionLogsPage() {
               ) : (
                 sortByOrder(susanProjects).map(project => (
                   <SusanProjectRow
+                    isExpanded={expandedParents.has(project.id)}
+                    onToggleExpand={() => setExpandedParents(prev => {
+                      const next = new Set(prev);
+                      if (next.has(project.id)) next.delete(project.id);
+                      else next.add(project.id);
+                      return next;
+                    })}
                     key={project.id}
                     project={project}
                     isDragging={draggedProject === project.id}
@@ -599,6 +665,29 @@ function SessionStage({ label, value, color, owner }: { label: string; value: nu
   );
 }
 
+// Map raw source_name to human-readable display label
+function displaySourceName(source: string | undefined): string {
+  if (!source) return "Unknown";
+
+  // External Claude / Desktop captured jsonl
+  if (source.startsWith("C--Users-") && source.endsWith(".jsonl")) return "External Claude (Desktop)";
+  if (source.startsWith("C--Users-")) return "External Claude (Desktop)";
+
+  // Internal terminal streams
+  if (source.startsWith("terminal-5400/") || source === "terminal/5400") return "Internal Claude Terminal (5400)";
+  if (source.startsWith("terminal-")) {
+    const match = source.match(/terminal-(d+)/);
+    if (match) return `Internal Terminal (${match[1]})`;
+    return "Internal Terminal";
+  }
+
+  // System logs
+  if (source === "mcp-session-log") return "MCP Session Log";
+
+  return source; // fallback to raw
+}
+
+
 // Session list item
 function SessionItem({ session }: { session: Session }) {
   const datetime = session.started_at ? formatDateTime(session.started_at) : '??:??';
@@ -622,7 +711,7 @@ function SessionItem({ session }: { session: Session }) {
     }
     // Show source_name if available
     if (session.source_name && session.source_name.trim()) {
-      return session.source_name;
+      return displaySourceName(session.source_name);
     }
     // Show user name
     if (session.user_name && session.user_name.trim()) {
@@ -653,7 +742,7 @@ function SessionItem({ session }: { session: Session }) {
         <span className="text-[10px] text-gray-500 font-mono shrink-0 ml-2">{datetime}</span>
       </div>
       <div className="flex items-center justify-between mt-1">
-        <span className="text-xs text-gray-500 truncate">{session.project_path || session.source_name || 'Unknown'}</span>
+        <span className="text-xs text-gray-500 truncate">{session.project_path || displaySourceName(session.source_name)}</span>
         <span className={`text-[10px] px-1.5 py-0.5 rounded ${statusColors[session.status || 'captured'] || statusColors.captured}`}>
           {session.status || 'captured'}
         </span>
@@ -669,32 +758,68 @@ function SusanProjectRow({
   onDragStart,
   onDragOver,
   onDragEnd,
+  isExpanded,
+  onToggleExpand,
 }: {
   project: SusanProject;
   isDragging: boolean;
   onDragStart: () => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragEnd: () => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }) {
+  const hasChildren = project.children && project.children.length > 0;
+  
   return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDragEnd={onDragEnd}
-      className={`py-1.5 px-2 rounded bg-gray-800/30 text-xs cursor-grab active:cursor-grabbing ${
-        isDragging ? 'opacity-50 border border-blue-500' : ''
-      }`}
-    >
-      <div className={`font-medium truncate ${project.total > 0 ? 'text-white' : 'text-gray-500'}`}>
-        {project.name}
+    <div>
+      <div
+        draggable
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+        className={`py-1.5 px-2 rounded bg-gray-800/30 text-xs cursor-grab active:cursor-grabbing ${
+          isDragging ? 'opacity-50 border border-blue-500' : ''
+        }`}
+      >
+        <div className="flex items-center gap-1">
+          {hasChildren && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+              className="text-gray-400 hover:text-white p-0.5"
+            >
+              {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            </button>
+          )}
+          <span className={`font-medium truncate flex-1 ${project.total > 0 ? 'text-white' : 'text-gray-500'}`}>
+            {project.name}
+            {hasChildren && <span className="text-gray-500 ml-1">({project.children!.length})</span>}
+          </span>
+        </div>
+        <div className={`flex gap-2 mt-0.5 text-[10px] ${hasChildren ? 'ml-4' : ''}`}>
+          <span className={project.todos > 0 ? 'text-blue-400' : 'text-gray-600'}>Todos {project.todos}</span>
+          <span className={project.bugs > 0 ? 'text-red-400' : 'text-gray-600'}>Bugs {project.bugs}</span>
+          <span className={project.knowledge > 0 ? 'text-green-400' : 'text-gray-600'}>Knowledge {project.knowledge}</span>
+          <span className={project.structure > 0 ? 'text-purple-400' : 'text-gray-600'}>Structure {project.structure}</span>
+        </div>
       </div>
-      <div className="flex gap-2 mt-0.5 text-[10px]">
-        <span className={project.todos > 0 ? 'text-blue-400' : 'text-gray-600'}>Todos {project.todos}</span>
-        <span className={project.bugs > 0 ? 'text-red-400' : 'text-gray-600'}>Bugs {project.bugs}</span>
-        <span className={project.knowledge > 0 ? 'text-green-400' : 'text-gray-600'}>Knowledge {project.knowledge}</span>
-        <span className={project.structure > 0 ? 'text-purple-400' : 'text-gray-600'}>Structure {project.structure}</span>
-      </div>
+      {hasChildren && isExpanded && (
+        <div className="ml-4 mt-1 space-y-1 border-l border-gray-700 pl-2">
+          {project.children!.map(child => (
+            <div key={child.id} className="py-1 px-2 rounded bg-gray-800/20 text-xs">
+              <div className={`font-medium truncate ${child.total > 0 ? 'text-gray-300' : 'text-gray-600'}`}>
+                {child.name}
+              </div>
+              <div className="flex gap-2 mt-0.5 text-[10px]">
+                <span className={child.todos > 0 ? 'text-blue-400' : 'text-gray-700'}>T {child.todos}</span>
+                <span className={child.bugs > 0 ? 'text-red-400' : 'text-gray-700'}>B {child.bugs}</span>
+                <span className={child.knowledge > 0 ? 'text-green-400' : 'text-gray-700'}>K {child.knowledge}</span>
+                <span className={child.structure > 0 ? 'text-purple-400' : 'text-gray-700'}>S {child.structure}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
