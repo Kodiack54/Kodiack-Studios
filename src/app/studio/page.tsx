@@ -376,6 +376,8 @@ export default function StudioPage() {
               projectSlug={selectedProject?.slug}
               userId={user?.id}
               pcTag={pcTag}
+              projectName={selectedProject?.name}
+              devTeam={selectedTeam.id}
             />
           </div>
         </div>

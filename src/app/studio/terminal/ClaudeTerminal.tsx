@@ -18,9 +18,9 @@ import {
   sendMultipleEnters,
   sendEnter,
   useSusanBriefing,
-  buildContextPrompt,
   useChadTranscription,
 } from './index';
+import { buildBriefingScript } from '@/lib/buildBriefingScript';
 
 export type { ChatLogMessage, ConversationMessage };
 
@@ -32,6 +32,8 @@ export function ClaudeTerminal({
   projectSlug,
   userId,
   pcTag,
+  projectName,
+  devTeam,
   onMessage,
   sendRef,
   connectRef,
@@ -233,40 +235,38 @@ export function ClaudeTerminal({
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ type: 'input', data: '\r' }));
 
-              // Step 3: Wait for Claude to fully load, then send Susan briefing
+              // Step 3: Wait for Claude to fully load, then send project briefing
               setTimeout(() => {
-                const ctx = susanContextRef.current;
                 if (!contextSentRef.current && ws.readyState === WebSocket.OPEN) {
                   contextSentRef.current = true;
                   briefingSentToClaudeRef.current = true;
 
-                  if (ctx?.greeting) {
-                    console.log('[ClaudeTerminal] Sending Susan briefing to Claude');
-                    if (xtermRef.current) {
-                      xtermRef.current.writeln('\x1b[35m\n📚 Sending memory briefing to Claude...\x1b[0m');
-                    }
-                    const contextMessage = buildContextPrompt(ctx);
-                    sendChunkedMessage(ws, contextMessage, () => {
-                      sendMultipleEnters(ws, () => {
-                        // Briefing fully sent, unlock chat box
-                        setBriefingSent(true);
-                        if (xtermRef.current) {
-                          xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
-                        }
-                      });
-                    });
-                  } else {
-                    console.log('[ClaudeTerminal] No Susan context available, sending /start command');
-                    sendChunkedMessage(ws, '/start', () => {
-                      sendMultipleEnters(ws, () => {
-                        // Briefing fully sent, unlock chat box
-                        setBriefingSent(true);
-                        if (xtermRef.current) {
-                          xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
-                        }
-                      });
-                    });
+                  console.log('[ClaudeTerminal] Sending project briefing to Claude');
+                  if (xtermRef.current) {
+                    xtermRef.current.writeln('\x1b[35m\n📚 Sending project briefing to Claude...\x1b[0m');
                   }
+
+                  // Build the same briefing script used in the external overlay
+                  const briefingScript = buildBriefingScript({
+                    projectName: projectName || '(Unknown Project)',
+                    projectId: projectId || '(No project id)',
+                    projectSlug: projectSlug || undefined,
+                    devTeam: devTeam || '(No team)',
+                    basePort: port,
+                    devSlot: devTeam ? devTeam.replace('dev', '') : '1',
+                    pcTag: pcTag || '(No pcTag)',
+                    userName: user?.name || '(Unknown user)',
+                  });
+
+                  sendChunkedMessage(ws, briefingScript, () => {
+                    sendMultipleEnters(ws, () => {
+                      // Briefing fully sent, unlock chat box
+                      setBriefingSent(true);
+                      if (xtermRef.current) {
+                        xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
+                      }
+                    });
+                  });
                 }
               }, BRIEFING_FALLBACK_MS);
             }

@@ -45,6 +45,9 @@ export interface ClaudeTerminalProps {
   projectSlug?: string | null;
   userId?: string | null;
   pcTag?: string | null;
+  // Project briefing context
+  projectName?: string | null;
+  devTeam?: string | null;
   onMessage?: (message: ChatLogMessage) => void;
   sendRef?: React.MutableRefObject<((message: string) => void) | null>;
   connectRef?: React.MutableRefObject<(() => void) | null>;
