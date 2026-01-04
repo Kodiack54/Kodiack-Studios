@@ -129,15 +129,6 @@ export default function StudioPage() {
             <Lock className="w-3 h-3 text-cyan-400/60" />
           </div>
 
-          {/* Briefing Button */}
-          <button
-            onClick={() => setShowBriefingOverlay(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all"
-          >
-            <FileText className="w-4 h-4" />
-            Briefing
-          </button>
-
           {/* Environment Dropdown */}
           <select
             value={selectedEnv.id}
@@ -151,6 +142,15 @@ export default function StudioPage() {
               <option key={env.id} value={env.id}>{env.name}</option>
             ))}
           </select>
+
+          {/* Briefing Button - Far Right */}
+          <button
+            onClick={() => setShowBriefingOverlay(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all"
+          >
+            <FileText className="w-4 h-4" />
+            Briefing
+          </button>
         </div>
       );
     } else {

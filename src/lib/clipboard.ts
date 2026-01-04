@@ -16,9 +16,12 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   try {
     const textarea = document.createElement('textarea');
     textarea.value = text;
+    // Prevent scrolling to bottom on iOS / older browsers
     textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
-    textarea.style.top = '-9999px';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
     document.body.appendChild(textarea);
     textarea.focus();
     textarea.select();
