@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Power, PowerOff, FolderOpen, Brain } from 'lucide-react';
+import { Power, PowerOff, FolderOpen, Brain, Square } from 'lucide-react';
 import type { Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -77,6 +77,31 @@ export function ClaudeTerminal({
       sendChunkedMessage(wsRef.current, message);
     }
   }, []);
+
+  // Send interrupt signal (Ctrl+C) to stop current operation
+  const sendInterrupt = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Send Ctrl+C (ASCII 0x03) to interrupt the process
+      wsRef.current.send(JSON.stringify({ type: 'input', data: '\x03' }));
+      if (xtermRef.current) {
+        xtermRef.current.writeln('\x1b[33m\n⏹ Interrupt sent (Ctrl+C)\x1b[0m');
+      }
+      console.log('[ClaudeTerminal] Interrupt signal sent');
+    }
+  }, []);
+
+  // ESC key handler - sends interrupt to stop Claude
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && connected) {
+        e.preventDefault();
+        sendInterrupt();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [connected, sendInterrupt]);
 
   useEffect(() => {
     if (sendRef) {
@@ -406,13 +431,24 @@ export function ClaudeTerminal({
 
         <div className="flex items-center gap-1">
           {connected ? (
-            <button
-              onClick={disconnect}
-              className="flex items-center gap-1 px-2 py-1 text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded"
-            >
-              <PowerOff className="w-3 h-3" />
-              Disconnect
-            </button>
+            <>
+              {/* Stop button - sends Ctrl+C interrupt */}
+              <button
+                onClick={sendInterrupt}
+                className="flex items-center gap-1 px-2 py-1 text-xs bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30 rounded"
+                title="Stop current operation (ESC)"
+              >
+                <Square className="w-3 h-3" />
+                Stop
+              </button>
+              <button
+                onClick={disconnect}
+                className="flex items-center gap-1 px-2 py-1 text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded"
+              >
+                <PowerOff className="w-3 h-3" />
+                Disconnect
+              </button>
+            </>
           ) : (
             <button
               onClick={connect}
