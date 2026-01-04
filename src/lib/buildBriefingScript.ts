@@ -30,7 +30,7 @@ export function buildBriefingScript(params: BriefingParams): string {
     timestamp = new Date().toISOString(),
   } = params;
 
-  return `[SESSION START]
+  return `--- PROJECT BRIEFING ---
 project=${projectName}
 project_id=${projectId}${projectSlug ? `\nproject_slug=${projectSlug}` : ''}
 dev_team=${devTeam}

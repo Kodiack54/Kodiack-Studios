@@ -143,13 +143,10 @@ export default function StudioPage() {
             ))}
           </select>
 
-          {/* Spacer to push Briefing button to far right */}
-          <div className="flex-1" />
-
-          {/* Briefing Button - Far Right with black border */}
+          {/* Briefing Button - Far Right with thin black border */}
           <button
             onClick={() => setShowBriefingOverlay(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium rounded-lg border-2 border-gray-900 hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md"
+            className="flex items-center gap-2 px-3 py-1.5 ml-auto bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium rounded-lg border border-gray-900 hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md"
           >
             <FileText className="w-4 h-4" />
             Briefing
