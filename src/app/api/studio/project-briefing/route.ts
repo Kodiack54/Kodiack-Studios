@@ -106,46 +106,63 @@ async function generateBriefingPacket(params: BriefingRequest): Promise<{
     console.error('[ProjectBriefing] Error fetching sessions:', e);
   }
 
-  // 4. Get unassigned todos (top 10)
+  // 4. Get unassigned todos from smart_extractions (top 10)
   let openTodos: TodoData[] = [];
   let todoCount = 0;
   try {
     const countResult = await db.query<{ count: string }>(
-      "SELECT COUNT(*) as count FROM dev_ai_todos WHERE project_id = $1 AND status = 'unassigned'",
+      "SELECT COUNT(*) as count FROM dev_ai_smart_extractions WHERE project_id = $1 AND bucket = 'Todos' AND status = 'unassigned'",
       [projectId]
     );
     todoCount = parseInt((countResult.data as { count: string }[])?.[0]?.count || '0', 10);
 
-    const result = await db.from<TodoData>('dev_ai_todos')
-      .select('id, content, priority, created_at')
-      .eq('project_id', projectId)
-      .eq('status', 'unassigned')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const result = await db.query<TodoData>(
+      `SELECT id, content, priority, created_at
+       FROM dev_ai_smart_extractions
+       WHERE project_id = $1 AND bucket = 'Todos' AND status = 'unassigned'
+       ORDER BY created_at DESC LIMIT 10`,
+      [projectId]
+    );
     openTodos = (result.data as TodoData[]) || [];
   } catch (e) {
     console.error('[ProjectBriefing] Error fetching todos:', e);
   }
 
-  // 5. Get open bugs (top 10)
+  // 5. Get open bugs from smart_extractions (top 10)
   let openBugs: BugData[] = [];
   let bugCount = 0;
   try {
     const countResult = await db.query<{ count: string }>(
-      "SELECT COUNT(*) as count FROM dev_ai_bugs WHERE project_id = $1 AND status = 'open'",
+      "SELECT COUNT(*) as count FROM dev_ai_smart_extractions WHERE project_id = $1 AND bucket = 'Bugs Open' AND status = 'open'",
       [projectId]
     );
     bugCount = parseInt((countResult.data as { count: string }[])?.[0]?.count || '0', 10);
 
-    const result = await db.from<BugData>('dev_ai_bugs')
-      .select('id, title, severity, created_at')
-      .eq('project_id', projectId)
-      .eq('status', 'open')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const result = await db.query<BugData>(
+      `SELECT id, title, priority as severity, created_at
+       FROM dev_ai_smart_extractions
+       WHERE project_id = $1 AND bucket = 'Bugs Open' AND status = 'open'
+       ORDER BY created_at DESC LIMIT 10`,
+      [projectId]
+    );
     openBugs = (result.data as BugData[]) || [];
   } catch (e) {
     console.error('[ProjectBriefing] Error fetching bugs:', e);
+  }
+
+  // 6. Get recent work logs from smart_extractions
+  let workLogs: { content: string; created_at: string }[] = [];
+  try {
+    const result = await db.query<{ content: string; created_at: string }>(
+      `SELECT content, created_at
+       FROM dev_ai_smart_extractions
+       WHERE project_id = $1 AND bucket = 'Work Log'
+       ORDER BY created_at DESC LIMIT 3`,
+      [projectId]
+    );
+    workLogs = (result.data as { content: string; created_at: string }[]) || [];
+  } catch (e) {
+    console.error('[ProjectBriefing] Error fetching work logs:', e);
   }
 
   // Build the briefing packet text
@@ -195,13 +212,19 @@ async function generateBriefingPacket(params: BriefingRequest): Promise<{
 
   // 5) Last Work Context
   briefingLines.push('5) Last Work Context (Last 12 hours)');
-  if (recentSessions.length > 0) {
+  if (workLogs.length > 0) {
+    for (const log of workLogs) {
+      const time = new Date(log.created_at).toLocaleString();
+      briefingLines.push(`- [${time}] ${log.content}`);
+    }
+  } else if (recentSessions.length > 0) {
+    // Fallback to sessions if no work logs
     for (const session of recentSessions) {
       const time = new Date(session.started_at).toLocaleString();
       briefingLines.push(`- [${time}] ${session.summary || '(No summary)'} (${session.status})`);
     }
   } else {
-    briefingLines.push('- (No recent sessions in last 12 hours)');
+    briefingLines.push('- (No recent work logs or sessions)');
   }
   briefingLines.push('');
 
@@ -244,7 +267,7 @@ async function generateBriefingPacket(params: BriefingRequest): Promise<{
   syncLines.push('SOURCES USED');
   syncLines.push(`- server_path: ${project?.server_path || '(not set)'}`);
   syncLines.push(`- local_path: ${project?.local_path || '(not set)'}`);
-  syncLines.push(`- db_tables_queried: dev_projects, dev_ai_sessions, dev_ai_todos, dev_ai_bugs`);
+  syncLines.push(`- db_tables_queried: dev_projects, dev_ai_sessions, dev_ai_smart_extractions`);
   syncLines.push('');
   syncLines.push('STATE SNAPSHOT');
   syncLines.push(`- recent_sessions: ${recentSessions.length}`);
@@ -255,8 +278,8 @@ async function generateBriefingPacket(params: BriefingRequest): Promise<{
   syncLines.push('TOP 5 LOAD-BEARING FACTS');
   syncLines.push(`1. Project "${project?.name || 'Unknown'}" running on port ${basePort} — source: dev_projects`);
   syncLines.push(`2. ${recentSessions.length} work sessions in last 12 hours — source: dev_ai_sessions`);
-  syncLines.push(`3. ${bugCount} open bugs to address — source: dev_ai_bugs`);
-  syncLines.push(`4. ${todoCount} unassigned todos — source: dev_ai_todos`);
+  syncLines.push(`3. ${bugCount} open bugs to address — source: dev_ai_smart_extractions`);
+  syncLines.push(`4. ${todoCount} unassigned todos — source: dev_ai_smart_extractions`);
   syncLines.push(`5. Server path: ${project?.server_path || '(not configured)'} — source: dev_projects`);
   syncLines.push('');
 
@@ -280,6 +303,7 @@ async function generateBriefingPacket(params: BriefingRequest): Promise<{
       project,
       childProjects,
       recentSessions,
+      workLogs,
       openTodos,
       openBugs,
       counts: { todoCount, bugCount },

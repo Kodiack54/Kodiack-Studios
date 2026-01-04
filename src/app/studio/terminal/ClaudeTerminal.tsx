@@ -20,7 +20,7 @@ import {
   useSusanBriefing,
   useChadTranscription,
 } from './index';
-import { buildBriefingScript } from '@/lib/buildBriefingScript';
+// Note: buildBriefingScript removed - server-side packet generator used instead
 
 export type { ChatLogMessage, ConversationMessage };
 
@@ -71,6 +71,7 @@ export function ClaudeTerminal({
 
   const briefingSentToClaudeRef = useRef<boolean>(false);
   const claudeCodeLoadedRef = useRef<boolean>(false);
+  const unlockFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sendMessage = useCallback((message: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -260,38 +261,33 @@ export function ClaudeTerminal({
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ type: 'input', data: '\r' }));
 
-              // Step 3: Wait for Claude to fully load, then send project briefing
+              // Step 3: Wait for Claude to fully load, then send /startproject
               setTimeout(() => {
                 if (!contextSentRef.current && ws.readyState === WebSocket.OPEN) {
                   contextSentRef.current = true;
-                  briefingSentToClaudeRef.current = true;
 
-                  console.log('[ClaudeTerminal] Sending project briefing to Claude');
-                  if (xtermRef.current) {
-                    xtermRef.current.writeln('\x1b[35m\n📚 Sending project briefing to Claude...\x1b[0m');
-                  }
+                  console.log('[ClaudeTerminal] Sending /startproject skill command');
 
-                  // Build the same briefing script used in the external overlay
-                  const briefingScript = buildBriefingScript({
-                    projectName: projectName || '(Unknown Project)',
-                    projectId: projectId || '(No project id)',
-                    projectSlug: projectSlug || undefined,
-                    devTeam: devTeam || '(No team)',
-                    basePort: port,
-                    devSlot: devTeam ? devTeam.replace('dev', '') : '1',
-                    pcTag: pcTag || '(No pcTag)',
-                    userName: user?.name || '(Unknown user)',
-                  });
+                  // Send /startproject skill command
+                  ws.send(JSON.stringify({ type: 'input', data: '/startproject\r' }));
 
-                  sendChunkedMessage(ws, briefingScript, () => {
-                    sendMultipleEnters(ws, () => {
-                      // Briefing fully sent, unlock chat box
+                  // Send extra Enter after 900ms to ensure command executes
+                  setTimeout(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                      ws.send(JSON.stringify({ type: 'input', data: '\r' }));
+                    }
+                  }, 900);
+
+                  // Unlock only after output arrives OR 12s fallback timeout
+                  unlockFallbackRef.current = setTimeout(() => {
+                    if (!briefingSentToClaudeRef.current) {
+                      briefingSentToClaudeRef.current = true;
                       setBriefingSent(true);
                       if (xtermRef.current) {
                         xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
                       }
-                    });
-                  });
+                    }
+                  }, 12000);
                 }
               }, BRIEFING_FALLBACK_MS);
             }
@@ -326,8 +322,26 @@ export function ClaudeTerminal({
             }
           }
 
-          // Note: Project briefing is now sent via timer (10s after connect)
-          // Detection removed for reliability
+          // Early unlock when Claude starts responding to /startproject
+          if (!briefingSentToClaudeRef.current && claudeCodeLoadedRef.current && contextSentRef.current) {
+            // Check for briefing output indicators
+            const hasBriefingOutput = cleanData.includes('PROJECT BRIEFING') ||
+                                      cleanData.includes('Ready to work') ||
+                                      cleanData.includes('Project Snapshot') ||
+                                      cleanData.includes('briefingPacket');
+            if (hasBriefingOutput) {
+              briefingSentToClaudeRef.current = true;
+              if (unlockFallbackRef.current) {
+                clearTimeout(unlockFallbackRef.current);
+                unlockFallbackRef.current = null;
+              }
+              setBriefingSent(true);
+              console.log('[ClaudeTerminal] Briefing output detected - chat unlocked');
+              if (xtermRef.current) {
+                xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
+              }
+            }
+          }
         } else if (msg.type === 'exit') {
           if (xtermRef.current) {
             xtermRef.current.writeln(`\x1b[33m[Process exited: ${msg.code}]\x1b[0m`);
@@ -369,6 +383,10 @@ export function ClaudeTerminal({
     resetSusan();
     briefingSentToClaudeRef.current = false;
     claudeCodeLoadedRef.current = false;
+    if (unlockFallbackRef.current) {
+      clearTimeout(unlockFallbackRef.current);
+      unlockFallbackRef.current = null;
+    }
   }, [disconnectChad, resetSusan]);
 
   useEffect(() => {
