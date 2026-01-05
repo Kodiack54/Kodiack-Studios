@@ -50,11 +50,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
-    const pcTag = searchParams.get('pc_tag');
 
-    if (!userId || !pcTag) {
+    // MVP SINGLE-USER MODE: Use fixed pc_tag for timestamp-based matching
+    const pcTag = 'terminal-5400';
+
+    if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'user_id and pc_tag required' },
+        { success: false, error: 'user_id required' },
         { status: 400 }
       );
     }
@@ -92,7 +94,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as ContextSetRequest;
 
-    const { user_id, pc_tag, mode, project_id, project_slug, project_name, dev_team, source } = body;
+    const { user_id, mode, project_id, project_slug, project_name, dev_team, source } = body;
+
+    // MVP SINGLE-USER MODE: Override pc_tag to 'terminal-5400' for timestamp-based matching
+    // This allows Chad to match 5400 transcripts to UI context flips
+    // TODO: Remove this when implementing multi-user identity tokens
+    const pc_tag = 'terminal-5400';
 
     // Validate required fields
     if (!user_id || !pc_tag || !mode || !source) {
@@ -127,13 +134,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. End any existing active context for this user/pc_tag
-    await db.query(
-      `UPDATE dev_user_context
-       SET ended_at = NOW(), updated_at = NOW()
-       WHERE user_id = $1 AND pc_tag = $2 AND ended_at IS NULL`,
+    // DEBOUNCE: Minimum 2-minute duration for context flips
+    // If previous context was < 2 min, DELETE it (noise reduction)
+    const MIN_DURATION_MS = 2 * 60 * 1000; // 2 minutes
+
+    // 1. Get current active context to check its duration
+    const currentResult = await db.query<UserContext>(
+      `SELECT * FROM dev_user_context
+       WHERE user_id = $1 AND pc_tag = $2 AND ended_at IS NULL
+       ORDER BY started_at DESC LIMIT 1`,
       [user_id, pc_tag]
     );
+
+    const currentRows = Array.isArray(currentResult.data) ? currentResult.data : [];
+    const currentContext = currentRows[0];
+
+    if (currentContext) {
+      const duration = Date.now() - new Date(currentContext.started_at).getTime();
+
+      if (duration < MIN_DURATION_MS) {
+        // Context was too short - DELETE it (it's noise)
+        await db.query(
+          `DELETE FROM dev_user_context WHERE id = $1`,
+          [currentContext.id]
+        );
+        console.log(`[Context API] Deleted short context (${Math.round(duration/1000)}s): ${currentContext.mode}`);
+      } else {
+        // Context was long enough - end it normally
+        await db.query(
+          `UPDATE dev_user_context
+           SET ended_at = NOW(), updated_at = NOW()
+           WHERE id = $1`,
+          [currentContext.id]
+        );
+      }
+    }
 
     // 2. Create new context
     const insertResult = await db.query<UserContext>(
@@ -194,11 +229,13 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
-    const pcTag = searchParams.get('pc_tag');
 
-    if (!userId || !pcTag) {
+    // MVP SINGLE-USER MODE: Use fixed pc_tag for timestamp-based matching
+    const pcTag = 'terminal-5400';
+
+    if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'user_id and pc_tag required' },
+        { success: false, error: 'user_id required' },
         { status: 400 }
       );
     }
