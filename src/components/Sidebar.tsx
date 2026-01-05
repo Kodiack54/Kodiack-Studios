@@ -218,7 +218,8 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        {/* Group D: Work surface tabs - auto-flip to support/project mode when clicked */}
+        {/* Group D: Work surface tabs - hidden on Calendar page */}
+        {!isCalendarPage && (
         <div className="px-2 py-2 space-y-1">
           <button
             onClick={() => handleWorkTabClick('/session-logs')}
@@ -265,6 +266,7 @@ export default function Sidebar() {
             <span>Terminal</span>
           </button>
         </div>
+        )}
 
         {/* Calendar Section - Scrollable independently */}
         {isCalendarPage && (
