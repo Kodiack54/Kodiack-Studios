@@ -19,6 +19,7 @@ export function useContextAutoFlip(
   targetMode: ContextMode,
   projectId?: string,
   projectSlug?: string,
+  projectName?: string,
   devTeam?: string
 ) {
   const { context, flipContext, hasActiveContext, userId, pcTag } = useUserContext();
@@ -53,7 +54,7 @@ export function useContextAutoFlip(
       hasFlipped.current = true;
 
       if (targetMode === 'project' && projectId) {
-        flipContext('project', projectId, projectSlug, devTeam);
+        flipContext('project', projectId, projectSlug, projectName, devTeam);
       } else if (targetMode !== 'project') {
         flipContext(targetMode);
       }
@@ -65,6 +66,7 @@ export function useContextAutoFlip(
     targetMode,
     projectId,
     projectSlug,
+    projectName,
     devTeam,
     userId,
     pcTag,
@@ -118,7 +120,8 @@ export function useRoadmapAutoFlip() {
 export function useProjectAutoFlip(
   projectId: string | undefined,
   projectSlug?: string,
+  projectName?: string,
   devTeam?: string
 ) {
-  useContextAutoFlip('project', projectId, projectSlug, devTeam);
+  useContextAutoFlip('project', projectId, projectSlug, projectName, devTeam);
 }

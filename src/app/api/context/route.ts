@@ -22,6 +22,7 @@ export interface UserContext {
   mode: ContextMode;
   project_id: string | null;
   project_slug: string | null;
+  project_name: string | null;
   dev_team: string | null;
   started_at: string;
   updated_at: string;
@@ -36,6 +37,7 @@ interface ContextSetRequest {
   mode: ContextMode;
   project_id?: string | null;
   project_slug?: string | null;
+  project_name?: string | null;
   dev_team?: string | null;
   source: ContextSource;
 }
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as ContextSetRequest;
 
-    const { user_id, pc_tag, mode, project_id, project_slug, dev_team, source } = body;
+    const { user_id, pc_tag, mode, project_id, project_slug, project_name, dev_team, source } = body;
 
     // Validate required fields
     if (!user_id || !pc_tag || !mode || !source) {
@@ -136,8 +138,8 @@ export async function POST(request: NextRequest) {
     // 2. Create new context
     const insertResult = await db.query<UserContext>(
       `INSERT INTO dev_user_context
-       (user_id, pc_tag, mode, project_id, project_slug, dev_team, source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (user_id, pc_tag, mode, project_id, project_slug, project_name, dev_team, source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         user_id,
@@ -145,6 +147,7 @@ export async function POST(request: NextRequest) {
         mode,
         mode === 'project' ? project_id : null,
         mode === 'project' ? (project_slug || null) : null,
+        mode === 'project' ? (project_name || null) : null,
         dev_team || null,
         source,
       ]
@@ -162,8 +165,8 @@ export async function POST(request: NextRequest) {
 
     // Build toast message
     let toastMessage = `Context → ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
-    if (mode === 'project' && project_slug) {
-      toastMessage = `Context → ${project_slug}`;
+    if (mode === 'project' && (project_name || project_slug)) {
+      toastMessage = `Context → ${project_name || project_slug}`;
       if (dev_team) {
         toastMessage += ` (${dev_team})`;
       }

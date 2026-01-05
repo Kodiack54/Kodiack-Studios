@@ -45,9 +45,9 @@ export default function ContextIndicator() {
 
   const Icon = MODE_ICONS[context.mode] || Code2;
 
-  // Display text based on mode
+  // Display text based on mode - prefer project_name over project_slug
   const displayText = context.mode === 'project'
-    ? (context.project_slug || 'Project')
+    ? (context.project_name || context.project_slug || 'Project')
     : MODE_LABELS[context.mode];
 
   return (

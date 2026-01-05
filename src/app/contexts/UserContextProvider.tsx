@@ -19,6 +19,7 @@ export interface UserContext {
   mode: ContextMode;
   project_id: string | null;
   project_slug: string | null;
+  project_name: string | null;
   dev_team: string | null;
   started_at: string;
   updated_at: string;
@@ -34,12 +35,12 @@ interface UserContextValue {
   hasActiveContext: boolean;
 
   // Previous work mode (PROJECT or SUPPORT) - for returning from Forge/Planning
-  previousWorkMode: { mode: ContextMode; projectId?: string; projectSlug?: string } | null;
+  previousWorkMode: { mode: ContextMode; projectId?: string; projectSlug?: string; projectName?: string } | null;
 
   // Actions
   fetchContext: () => Promise<void>;
   setContext: (params: SetContextParams) => Promise<boolean>;
-  flipContext: (mode: ContextMode, projectId?: string, projectSlug?: string, devTeam?: string) => Promise<boolean>;
+  flipContext: (mode: ContextMode, projectId?: string, projectSlug?: string, projectName?: string, devTeam?: string) => Promise<boolean>;
   returnToPreviousWorkMode: () => Promise<boolean>;
   flipToSupportIfNeeded: () => Promise<boolean>;
   endContext: () => Promise<void>;
@@ -54,6 +55,7 @@ interface SetContextParams {
   mode: ContextMode;
   project_id?: string | null;
   project_slug?: string | null;
+  project_name?: string | null;
   dev_team?: string | null;
   source: ContextSource;
 }
@@ -79,7 +81,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [pcTag, setPcTag] = useState<string | null>(null);
-  const [previousWorkMode, setPreviousWorkMode] = useState<{ mode: ContextMode; projectId?: string; projectSlug?: string } | null>(null);
+  const [previousWorkMode, setPreviousWorkMode] = useState<{ mode: ContextMode; projectId?: string; projectSlug?: string; projectName?: string } | null>(null);
 
   const hasActiveContext = !!context;
 
@@ -90,6 +92,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         mode: context.mode,
         projectId: context.project_id || undefined,
         projectSlug: context.project_slug || undefined,
+        projectName: context.project_name || undefined,
       });
     }
   }, [context]);
@@ -155,12 +158,14 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     mode: ContextMode,
     projectId?: string,
     projectSlug?: string,
+    projectName?: string,
     devTeam?: string
   ): Promise<boolean> => {
     return setContext({
       mode,
       project_id: projectId || null,
       project_slug: projectSlug || null,
+      project_name: projectName || null,
       dev_team: devTeam || null,
       source: 'autoflip',
     });
@@ -173,6 +178,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         mode: previousWorkMode.mode,
         project_id: previousWorkMode.projectId || null,
         project_slug: previousWorkMode.projectSlug || null,
+        project_name: previousWorkMode.projectName || null,
         source: 'autoflip',
       });
     }
@@ -185,24 +191,36 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
   // Flip to SUPPORT if currently in OTHER, FORGE, or PLANNING (for sidebar work tabs)
   const flipToSupportIfNeeded = useCallback(async (): Promise<boolean> => {
-    if (!context) return false;
+    console.log('[flipToSupportIfNeeded] Current context:', context?.mode, 'previousWorkMode:', previousWorkMode);
 
-    // If already in PROJECT or SUPPORT, no flip needed
+    // No context yet - flip to support
+    if (!context) {
+      console.log('[flipToSupportIfNeeded] No context, flipping to support');
+      return setContext({
+        mode: 'support',
+        source: 'autoflip',
+      });
+    }
+
+    // If already in PROJECT or SUPPORT, no flip needed - stay in current mode
     if (context.mode === 'project' || context.mode === 'support') {
+      console.log('[flipToSupportIfNeeded] Already in project/support, no flip needed');
       return true;
     }
 
-    // If in FORGE or PLANNING, return to previous work mode
+    // If in FORGE or PLANNING, return to previous work mode (project or support)
     if (context.mode === 'forge' || context.mode === 'planning') {
+      console.log('[flipToSupportIfNeeded] In forge/planning, returning to previous work mode');
       return returnToPreviousWorkMode();
     }
 
-    // If in OTHER, flip to SUPPORT
+    // If in OTHER or BREAK, flip to SUPPORT
+    console.log('[flipToSupportIfNeeded] In other/break, flipping to support');
     return setContext({
       mode: 'support',
       source: 'autoflip',
     });
-  }, [context, returnToPreviousWorkMode, setContext]);
+  }, [context, previousWorkMode, returnToPreviousWorkMode, setContext]);
 
   const endContext = useCallback(async () => {
     if (!userId || !pcTag) return;

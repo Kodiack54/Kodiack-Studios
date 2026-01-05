@@ -63,6 +63,7 @@ export default function StudioPage() {
   useProjectAutoFlip(
     selectedProject?.id,
     selectedProject?.slug,
+    selectedProject?.name,
     selectedTeam?.id
   );
 
