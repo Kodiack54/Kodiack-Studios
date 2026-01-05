@@ -54,14 +54,17 @@ function ProjectManagementContent() {
   const searchParams = useSearchParams();
   const projectSlug = searchParams.get('project');
   const allClients = searchParams.get('allClients');
-  const { selectedClient, setSelectedClient } = useClient();
+  const { clients, selectedClient, setSelectedClient } = useClient();
 
-  // Clear client filter when coming from Session Logs with allClients=true
+  // Default to "All Clients" on project management page
+  // This ensures users see all projects on first load
+  const [clientInitialized, setClientInitialized] = useState(false);
   useEffect(() => {
-    if (allClients === 'true' && selectedClient !== null) {
+    if (!clientInitialized) {
       setSelectedClient(null);
+      setClientInitialized(true);
     }
-  }, [allClients, selectedClient, setSelectedClient]);
+  }, [clientInitialized, setSelectedClient]);
 
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -318,26 +321,38 @@ function ProjectManagementContent() {
       <div className="bg-gray-800 border-b border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">Project Management</h1>
-              {selectedClient && (
-                <span className="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-lg text-sm flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
-                  {selectedClient.name}
-                </span>
-              )}
-            </div>
+            <h1 className="text-2xl font-bold text-white">Project Management</h1>
             <p className="text-gray-400 text-sm mt-1">
               {parentProjects.length} parent{parentProjects.length !== 1 ? 's' : ''} · {childProjects.length + orphanProjects.length} project{(childProjects.length + orphanProjects.length) !== 1 ? 's' : ''}
             </p>
           </div>
-          <button
-            onClick={handleAddProject}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Project
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Client Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedClient?.id || ''}
+                onChange={(e) => {
+                  const client = clients.find(c => c.id === e.target.value) || null;
+                  setSelectedClient(client);
+                }}
+                className="appearance-none bg-gray-700 border border-gray-600 text-white px-4 py-2 pr-8 rounded-lg text-sm focus:outline-none focus:border-blue-500 cursor-pointer"
+              >
+                <option value="">All Clients</option>
+                {clients.map(client => (
+                  <option key={client.id} value={client.id}>{client.name}</option>
+                ))}
+              </select>
+              <Building2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            <button
+              onClick={handleAddProject}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Project
+            </button>
+          </div>
         </div>
 
         {/* Stats Row - totals across all projects */}
