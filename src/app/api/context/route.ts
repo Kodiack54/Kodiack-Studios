@@ -19,6 +19,7 @@ export interface UserContext {
   id: string;
   user_id: string;
   pc_tag: string;
+  pc_tag_raw: string | null;
   mode: ContextMode;
   project_id: string | null;
   project_slug: string | null;
@@ -29,17 +30,22 @@ export interface UserContext {
   ended_at: string | null;
   source: ContextSource;
   locked: boolean;
+  event_type: 'flip' | 'heartbeat';
+  meta: Record<string, unknown> | null;
 }
 
 interface ContextSetRequest {
   user_id: string;
-  pc_tag: string;
+  pc_tag?: string;           // Optional - defaults to 'studio-terminals'
+  pc_tag_raw?: string;       // Raw source identifier for forensics
   mode: ContextMode;
   project_id?: string | null;
   project_slug?: string | null;
   project_name?: string | null;
   dev_team?: string | null;
   source: ContextSource;
+  event_type?: 'flip' | 'heartbeat';  // Defaults to 'flip'
+  meta?: Record<string, unknown>;      // Arbitrary metadata (forge_scope, route, etc.)
 }
 
 /**
@@ -51,8 +57,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
 
-    // MVP SINGLE-USER MODE: Use fixed pc_tag for timestamp-based matching
-    const pcTag = 'terminal-5400';
+    // Canonical pc_tag for all studio terminals
+    const pcTag = 'studio-terminals';
 
     if (!userId) {
       return NextResponse.json(
@@ -94,17 +100,27 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as ContextSetRequest;
 
-    const { user_id, mode, project_id, project_slug, project_name, dev_team, source } = body;
+    const {
+      user_id,
+      mode,
+      project_id,
+      project_slug,
+      project_name,
+      dev_team,
+      source,
+      pc_tag_raw,
+      event_type = 'flip',
+      meta
+    } = body;
 
-    // MVP SINGLE-USER MODE: Override pc_tag to 'terminal-5400' for timestamp-based matching
-    // This allows Chad to match 5400 transcripts to UI context flips
-    // TODO: Remove this when implementing multi-user identity tokens
-    const pc_tag = 'terminal-5400';
+    // Canonical pc_tag for all studio terminals
+    // Chad normalizes terminal-5400/5410/mcp-session-log to this group
+    const pc_tag = 'studio-terminals';
 
     // Validate required fields
-    if (!user_id || !pc_tag || !mode || !source) {
+    if (!user_id || !mode || !source) {
       return NextResponse.json(
-        { success: false, error: 'user_id, pc_tag, mode, and source required' },
+        { success: false, error: 'user_id, mode, and source required' },
         { status: 400 }
       );
     }
@@ -134,57 +150,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // DEBOUNCE: Minimum 2-minute duration for context flips
-    // If previous context was < 2 min, DELETE it (noise reduction)
-    const MIN_DURATION_MS = 2 * 60 * 1000; // 2 minutes
+    // Heartbeats are append-only - don't modify previous contexts
+    // Flips use debounce logic to clean up short contexts
+    if (event_type === 'flip') {
+      // DEBOUNCE: Minimum 2-minute duration for context flips
+      // If previous context was < 2 min, DELETE it (noise reduction)
+      const MIN_DURATION_MS = 2 * 60 * 1000; // 2 minutes
 
-    // 1. Get current active context to check its duration
-    const currentResult = await db.query<UserContext>(
-      `SELECT * FROM dev_user_context
-       WHERE user_id = $1 AND pc_tag = $2 AND ended_at IS NULL
-       ORDER BY started_at DESC LIMIT 1`,
-      [user_id, pc_tag]
-    );
+      // 1. Get current active context to check its duration
+      const currentResult = await db.query<UserContext>(
+        `SELECT * FROM dev_user_context
+         WHERE user_id = $1 AND pc_tag = $2 AND ended_at IS NULL
+         ORDER BY started_at DESC LIMIT 1`,
+        [user_id, pc_tag]
+      );
 
-    const currentRows = Array.isArray(currentResult.data) ? currentResult.data : [];
-    const currentContext = currentRows[0];
+      const currentRows = Array.isArray(currentResult.data) ? currentResult.data : [];
+      const currentContext = currentRows[0];
 
-    if (currentContext) {
-      const duration = Date.now() - new Date(currentContext.started_at).getTime();
+      if (currentContext) {
+        const duration = Date.now() - new Date(currentContext.started_at).getTime();
 
-      if (duration < MIN_DURATION_MS) {
-        // Context was too short - DELETE it (it's noise)
-        await db.query(
-          `DELETE FROM dev_user_context WHERE id = $1`,
-          [currentContext.id]
-        );
-        console.log(`[Context API] Deleted short context (${Math.round(duration/1000)}s): ${currentContext.mode}`);
-      } else {
-        // Context was long enough - end it normally
-        await db.query(
-          `UPDATE dev_user_context
-           SET ended_at = NOW(), updated_at = NOW()
-           WHERE id = $1`,
-          [currentContext.id]
-        );
+        if (duration < MIN_DURATION_MS) {
+          // Context was too short - DELETE it (it's noise)
+          await db.query(
+            `DELETE FROM dev_user_context WHERE id = $1`,
+            [currentContext.id]
+          );
+          console.log(`[Context API] Deleted short context (${Math.round(duration/1000)}s): ${currentContext.mode}`);
+        } else {
+          // Context was long enough - end it normally
+          await db.query(
+            `UPDATE dev_user_context
+             SET ended_at = NOW(), updated_at = NOW()
+             WHERE id = $1`,
+            [currentContext.id]
+          );
+        }
       }
     }
+    // For heartbeats: Just append, Chad uses latest event <= session_time
 
-    // 2. Create new context
+    // 2. Create new context (append-only for heartbeat support)
     const insertResult = await db.query<UserContext>(
       `INSERT INTO dev_user_context
-       (user_id, pc_tag, mode, project_id, project_slug, project_name, dev_team, source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       (user_id, pc_tag, pc_tag_raw, mode, project_id, project_slug, project_name, dev_team, source, event_type, meta)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
         user_id,
         pc_tag,
+        pc_tag_raw || 'dashboard',  // Default to 'dashboard' if not specified
         mode,
         mode === 'project' ? project_id : null,
         mode === 'project' ? (project_slug || null) : null,
         mode === 'project' ? (project_name || null) : null,
         dev_team || null,
         source,
+        event_type,
+        meta ? JSON.stringify(meta) : null,
       ]
     );
 
@@ -230,8 +254,8 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
 
-    // MVP SINGLE-USER MODE: Use fixed pc_tag for timestamp-based matching
-    const pcTag = 'terminal-5400';
+    // Canonical pc_tag for all studio terminals
+    const pcTag = 'studio-terminals';
 
     if (!userId) {
       return NextResponse.json(

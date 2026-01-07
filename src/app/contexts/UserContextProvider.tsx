@@ -1,16 +1,32 @@
 'use client';
 
 /**
- * UserContextProvider - GLOBAL SOURCE OF TRUTH
+ * UserContextProvider - Context Contract v1.0
  *
- * Context is set by tab navigation (auto-flip hooks).
- * NO gate modal. NO popup. Just provides context state.
+ * GLOBAL SOURCE OF TRUTH for what the user is doing.
+ *
+ * Core concept:
+ * - Project is "sticky" (set by dropdown, persists across tabs)
+ * - Mode is "fluid" (derived from current route)
+ * - System tabs (support/servers/admin) force Studios Platform
+ * - Heartbeat re-asserts context every 2 minutes
+ *
+ * Chad normalizes all terminals to 'studio-terminals' for matching.
  */
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 
 export type ContextMode = 'project' | 'forge' | 'support' | 'planning' | 'other' | 'break';
 export type ContextSource = 'universal' | 'studio' | 'autoflip' | 'timeclock' | 'manual';
+export type EventType = 'flip' | 'heartbeat';
+
+// Constants for Context Contract v1.0
+const SYSTEM_ROUTES = ['/support', '/servers', '/admin', '/security', '/session-logs'];
+const STUDIOS_PLATFORM_ID = '00000000-0000-0000-0000-000000000001'; // Studios Platform UUID
+const STUDIOS_PLATFORM_SLUG = 'studios';
+const STUDIOS_PLATFORM_NAME = 'Studios Platform';
+const HEARTBEAT_INTERVAL = 120_000; // 2 minutes
 
 export interface UserContext {
   id: string;
@@ -28,11 +44,24 @@ export interface UserContext {
   locked: boolean;
 }
 
+// Sticky project info (set by dropdown only)
+export interface StickyProject {
+  id: string;
+  slug: string;
+  name: string;
+}
+
 interface UserContextValue {
   // Current context state
   context: UserContext | null;
   isLoading: boolean;
   hasActiveContext: boolean;
+
+  // Context Contract v1.0: Sticky project (set by dropdown) vs Effective project (computed)
+  stickyProject: StickyProject | null;
+  effectiveProject: StickyProject | null;
+  resolvedMode: ContextMode;
+  isSystemTab: boolean;
 
   // Previous work mode (PROJECT or SUPPORT) - for returning from Forge/Planning
   previousWorkMode: { mode: ContextMode; projectId?: string; projectSlug?: string; projectName?: string } | null;
@@ -44,6 +73,9 @@ interface UserContextValue {
   returnToPreviousWorkMode: () => Promise<boolean>;
   flipToSupportIfNeeded: () => Promise<boolean>;
   endContext: () => Promise<void>;
+
+  // Context Contract v1.0: Set sticky project from dropdown
+  setStickyProject: (project: StickyProject | null) => void;
 
   // User identity (set on login)
   userId: string | null;
@@ -58,12 +90,18 @@ interface SetContextParams {
   project_name?: string | null;
   dev_team?: string | null;
   source: ContextSource;
+  event_type?: EventType;
+  meta?: Record<string, unknown>;
 }
 
 const UserContextContext = createContext<UserContextValue>({
   context: null,
   isLoading: true,
   hasActiveContext: false,
+  stickyProject: null,
+  effectiveProject: null,
+  resolvedMode: 'project',
+  isSystemTab: false,
   previousWorkMode: null,
   fetchContext: async () => {},
   setContext: async () => false,
@@ -71,6 +109,7 @@ const UserContextContext = createContext<UserContextValue>({
   returnToPreviousWorkMode: async () => false,
   flipToSupportIfNeeded: async () => false,
   endContext: async () => {},
+  setStickyProject: () => {},
   userId: null,
   pcTag: null,
   setUserIdentity: () => {},
@@ -83,7 +122,50 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const [pcTag, setPcTag] = useState<string | null>(null);
   const [previousWorkMode, setPreviousWorkMode] = useState<{ mode: ContextMode; projectId?: string; projectSlug?: string; projectName?: string } | null>(null);
 
+  // Context Contract v1.0: Sticky project (only changes via dropdown)
+  const [stickyProject, setStickyProjectState] = useState<StickyProject | null>(null);
+
+  // Track last context write for heartbeat
+  const lastWriteRef = useRef<{ time: number; projectId: string | null; mode: ContextMode }>({
+    time: 0,
+    projectId: null,
+    mode: 'project',
+  });
+
   const hasActiveContext = !!context;
+
+  // Get current route for mode resolution
+  const pathname = usePathname();
+
+  // Context Contract v1.0: Resolve mode from current route
+  const resolvedMode = useMemo((): ContextMode => {
+    if (!pathname) return 'project';
+    if (pathname.includes('/planning') || pathname.includes('/roadmap')) return 'planning';
+    if (pathname.includes('/forge')) return 'forge';
+    if (pathname.includes('/support') || pathname.includes('/session-logs') ||
+        pathname.includes('/servers') || pathname.includes('/admin') ||
+        pathname.includes('/security')) return 'support';
+    return 'project';
+  }, [pathname]);
+
+  // Context Contract v1.0: Detect if on system tab (forces Studios Platform)
+  const isSystemTab = useMemo(() => {
+    if (!pathname) return false;
+    return SYSTEM_ROUTES.some(route => pathname.startsWith(route));
+  }, [pathname]);
+
+  // Context Contract v1.0: Compute effective project
+  // System tabs force Studios Platform, otherwise use sticky project
+  const effectiveProject = useMemo((): StickyProject | null => {
+    if (isSystemTab) {
+      return {
+        id: STUDIOS_PLATFORM_ID,
+        slug: STUDIOS_PLATFORM_SLUG,
+        name: STUDIOS_PLATFORM_NAME,
+      };
+    }
+    return stickyProject;
+  }, [isSystemTab, stickyProject]);
 
   // Track previous work mode (PROJECT or SUPPORT) when switching to Forge/Planning
   useEffect(() => {
@@ -133,7 +215,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   }, [userId, pcTag]);
 
   const setContext = useCallback(async (params: SetContextParams): Promise<boolean> => {
-    if (!userId || !pcTag) return false;
+    if (!userId) return false;
 
     try {
       const res = await fetch('/api/context', {
@@ -141,7 +223,10 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userId,
-          pc_tag: pcTag,
+          // pc_tag is now 'studio-terminals' (set by API)
+          pc_tag_raw: 'dashboard',
+          event_type: params.event_type || 'flip',
+          meta: params.meta || { route: pathname },
           ...params,
         }),
       });
@@ -150,6 +235,12 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
       if (data.success) {
         setContextState(data.context);
+        // Track last write for heartbeat
+        lastWriteRef.current = {
+          time: Date.now(),
+          projectId: params.project_id || null,
+          mode: params.mode,
+        };
         return true;
       } else {
         console.error('[UserContext] Failed to set context:', data.error);
@@ -159,7 +250,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       console.error('[UserContext] Error setting context:', error);
       return false;
     }
-  }, [userId, pcTag]);
+  }, [userId, pathname]);
 
   // Convenience method for auto-flip (called by tab navigation hooks)
   const flipContext = useCallback(async (
@@ -231,10 +322,10 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   }, [context, previousWorkMode, returnToPreviousWorkMode, setContext]);
 
   const endContext = useCallback(async () => {
-    if (!userId || !pcTag) return;
+    if (!userId) return;
 
     try {
-      const res = await fetch(`/api/context?user_id=${userId}&pc_tag=${encodeURIComponent(pcTag)}`, {
+      const res = await fetch(`/api/context?user_id=${userId}`, {
         method: 'DELETE',
       });
 
@@ -246,7 +337,74 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[UserContext] Error ending context:', error);
     }
-  }, [userId, pcTag]);
+  }, [userId]);
+
+  // Context Contract v1.0: Set sticky project from dropdown
+  // stickyProjectId is NEVER mutated by system tabs - only dropdown changes it
+  const setStickyProject = useCallback((project: StickyProject | null) => {
+    setStickyProjectState(project);
+  }, []);
+
+  // Context Contract v1.0: Write context immediately on flip (effectiveProject or resolvedMode change)
+  useEffect(() => {
+    if (!userId) return;
+
+    const currentProjectId = effectiveProject?.id || null;
+    const hasChanged =
+      currentProjectId !== lastWriteRef.current.projectId ||
+      resolvedMode !== lastWriteRef.current.mode;
+
+    if (hasChanged) {
+      console.log('[UserContext] Context flip:', {
+        projectId: currentProjectId,
+        mode: resolvedMode,
+        isSystemTab,
+      });
+
+      setContext({
+        mode: resolvedMode,
+        project_id: currentProjectId,
+        project_slug: effectiveProject?.slug || null,
+        project_name: effectiveProject?.name || null,
+        source: 'autoflip',
+        event_type: 'flip',
+        meta: {
+          route: pathname,
+          isSystemTab,
+          stickyProjectId: stickyProject?.id || null,
+        },
+      });
+    }
+  }, [userId, effectiveProject, resolvedMode, isSystemTab, pathname, stickyProject, setContext]);
+
+  // Context Contract v1.0: Heartbeat every 2 minutes (conditional)
+  useEffect(() => {
+    if (!userId) return;
+
+    const heartbeatInterval = setInterval(() => {
+      const elapsed = Date.now() - lastWriteRef.current.time;
+
+      // Only write heartbeat if last write is older than 2 minutes
+      if (elapsed >= HEARTBEAT_INTERVAL) {
+        console.log('[UserContext] Heartbeat');
+        setContext({
+          mode: resolvedMode,
+          project_id: effectiveProject?.id || null,
+          project_slug: effectiveProject?.slug || null,
+          project_name: effectiveProject?.name || null,
+          source: 'autoflip',
+          event_type: 'heartbeat',
+          meta: {
+            route: pathname,
+            isSystemTab,
+            stickyProjectId: stickyProject?.id || null,
+          },
+        });
+      }
+    }, HEARTBEAT_INTERVAL);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [userId, effectiveProject, resolvedMode, isSystemTab, pathname, stickyProject, setContext]);
 
   // Fetch context when user identity is set
   useEffect(() => {
@@ -260,6 +418,10 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       context,
       isLoading,
       hasActiveContext,
+      stickyProject,
+      effectiveProject,
+      resolvedMode,
+      isSystemTab,
       previousWorkMode,
       fetchContext,
       setContext,
@@ -267,6 +429,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       returnToPreviousWorkMode,
       flipToSupportIfNeeded,
       endContext,
+      setStickyProject,
       userId,
       pcTag,
       setUserIdentity,
