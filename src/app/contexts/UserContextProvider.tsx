@@ -504,11 +504,16 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     const heartbeatInterval = window.setInterval(() => {
       const currentUserId = userIdRef.current;
       const elapsed = Date.now() - lastWriteRef.current.time;
+      const data = heartbeatDataRef.current;
+      const sig = `${data.effectiveProject?.id || 'null'}|${data.resolvedMode}|${data.isSystemTab}`;
 
       console.log('[UserContext] Heartbeat tick', {
         userId: currentUserId ? 'set' : 'null',
         hidden: document.hidden,
         elapsed: Math.round(elapsed / 1000),
+        threshold: HEARTBEAT_INTERVAL / 1000,
+        sig,
+        lastWriteTime: lastWriteRef.current.time,
       });
 
       // Skip if no user, tab hidden, or recent write
@@ -516,10 +521,10 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       if (document.hidden) return;
       if (elapsed < HEARTBEAT_INTERVAL) return;
 
-      const data = heartbeatDataRef.current;
       console.log('[UserContext] Heartbeat firing', {
         mode: data.resolvedMode,
         project: data.effectiveProject?.slug,
+        sig,
       });
 
       // Use fetch directly - refs for all values
@@ -543,6 +548,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
       fetch('/api/context', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       }).then(async res => {
