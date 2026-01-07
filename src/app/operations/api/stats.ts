@@ -76,10 +76,11 @@ export async function getPipelineStats(): Promise<PipelineStats> {
       ),
     ]);
 
-    // Extract counts from results - db.query always returns data as T[]
-    const getCount = (result: { data: { count: string }[] | null; error: Error | null }): number => {
-      if (!result.data || result.error) return 0;
-      const rows = result.data;
+    // Extract counts from results - db.query returns QueryResult where data could be T | T[] | null
+    const getCount = (result: Awaited<ReturnType<typeof db.query<{ count: string }>>>): number => {
+      if (!result.data) return 0;
+      // db.query always returns array for data
+      const rows = Array.isArray(result.data) ? result.data : [result.data];
       return parseInt(rows[0]?.count || '0', 10);
     };
 
