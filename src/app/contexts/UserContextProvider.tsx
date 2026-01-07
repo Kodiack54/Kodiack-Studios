@@ -139,6 +139,21 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     mode: 'project',
   });
 
+  // Refs for heartbeat to access current values without causing effect re-runs
+  const heartbeatDataRef = useRef<{
+    effectiveProject: StickyProject | null;
+    resolvedMode: ContextMode;
+    isSystemTab: boolean;
+    pathname: string | null;
+    stickyProject: StickyProject | null;
+  }>({
+    effectiveProject: null,
+    resolvedMode: 'project',
+    isSystemTab: false,
+    pathname: null,
+    stickyProject: null,
+  });
+
   const hasActiveContext = !!context;
 
   // Get current route for mode resolution
@@ -388,7 +403,19 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     }
   }, [userId, effectiveProject, resolvedMode, isSystemTab, pathname, stickyProject, setContext]);
 
-  // Context Contract v1.0: Heartbeat every 2 minutes (conditional)
+  // Keep heartbeat ref in sync (runs every render, no deps)
+  useEffect(() => {
+    heartbeatDataRef.current = {
+      effectiveProject,
+      resolvedMode,
+      isSystemTab,
+      pathname,
+      stickyProject,
+    };
+  });
+
+  // Context Contract v1.0: Heartbeat every 2 minutes (stable interval)
+  // Only depends on userId - doesn't reset on navigation
   useEffect(() => {
     if (!userId) return;
 
@@ -397,25 +424,45 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
       // Only write heartbeat if last write is older than 2 minutes
       if (elapsed >= HEARTBEAT_INTERVAL) {
-        console.log('[UserContext] Heartbeat');
-        setContext({
-          mode: resolvedMode,
-          project_id: effectiveProject?.id || null,
-          project_slug: effectiveProject?.slug || null,
-          project_name: effectiveProject?.name || null,
-          source: 'autoflip',
-          event_type: 'heartbeat',
-          meta: {
-            route: pathname,
-            isSystemTab,
-            stickyProjectId: stickyProject?.id || null,
-          },
+        const data = heartbeatDataRef.current;
+        console.log('[UserContext] Heartbeat firing', {
+          elapsed: Math.round(elapsed / 1000),
+          mode: data.resolvedMode,
+          project: data.effectiveProject?.slug,
+        });
+
+        // Use fetch directly to avoid setContext dependency
+        fetch('/api/context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            pc_tag_raw: 'dashboard',
+            mode: data.resolvedMode,
+            project_id: data.effectiveProject?.id || null,
+            project_slug: data.effectiveProject?.slug || null,
+            project_name: data.effectiveProject?.name || null,
+            source: 'autoflip',
+            event_type: 'heartbeat',
+            meta: {
+              route: data.pathname,
+              isSystemTab: data.isSystemTab,
+              stickyProjectId: data.stickyProject?.id || null,
+            },
+          }),
+        }).then(res => res.json()).then(result => {
+          if (result.success) {
+            lastWriteRef.current.time = Date.now();
+            console.log('[UserContext] Heartbeat written');
+          }
+        }).catch(err => {
+          console.error('[UserContext] Heartbeat failed:', err);
         });
       }
     }, HEARTBEAT_INTERVAL);
 
     return () => clearInterval(heartbeatInterval);
-  }, [userId, effectiveProject, resolvedMode, isSystemTab, pathname, stickyProject, setContext]);
+  }, [userId]); // Only userId - stable after login
 
   // Fetch context when user identity is set
   useEffect(() => {
