@@ -395,19 +395,8 @@ export function ClaudeTerminal({
     }
   }, [connectRef, connect]);
 
-  // Auto-connect when required session context is ready
-  useEffect(() => {
-    if (connected || connecting || wsRef.current) return;
-
-    // Require full Studio context before connecting
-    if (!projectId || !userId || !pcTag) return;
-
-    const timer = setTimeout(() => {
-      connect();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [connected, connecting, projectId, userId, pcTag, connect]);
+  // NOTE: Auto-connect removed - user must click Connect button after completing
+  // the connection sequence (select team → pick project → connect)
 
   const sendInput = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

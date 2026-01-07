@@ -191,10 +191,35 @@ export default function StudioPage() {
       description: 'Development environment with Claude AI'
     });
 
-    // Only show project/environment in header when connected (locked in)
+    // Show project/environment dropdowns when connected (both editable)
     if (connectionStatus === 'connected') {
       setPageActions(
         <div className="flex items-center gap-2 w-full">
+          {/* Project Dropdown - Editable */}
+          <div className="relative">
+            <FolderOpen className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400" />
+            <select
+              value={selectedProject?.id || ''}
+              onChange={(e) => {
+                const project = parentProjects.find(p => p.id === e.target.value);
+                if (project) {
+                  setSelectedProject(project);
+                  // Sync header ContextIndicator
+                  setStickyProject({
+                    id: project.id,
+                    slug: project.slug || '',
+                    name: project.name,
+                  });
+                }
+              }}
+              className="w-52 pl-8 pr-3 py-1.5 bg-gray-800/80 text-cyan-400 text-sm font-medium rounded-lg border border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer"
+            >
+              {parentProjects.map(p => (
+                <option key={p.id} value={p.id} className="bg-gray-800 text-white">{p.name}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Environment Dropdown */}
           <select
             value={selectedEnv.id}
@@ -227,7 +252,7 @@ export default function StudioPage() {
       setPageTitle({ title: '', description: '' });
       setPageActions(null);
     };
-  }, [setPageTitle, setPageActions, connectionStatus, selectedProject, selectedEnv]);
+  }, [setPageTitle, setPageActions, connectionStatus, selectedProject, selectedEnv, parentProjects, setSelectedProject, setStickyProject]);
 
   // Show access restricted for non-engineers
   if (!isEngineer) {
