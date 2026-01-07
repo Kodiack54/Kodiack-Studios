@@ -132,6 +132,9 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // Context Contract v1.0: Sticky project (only changes via dropdown)
   const [stickyProject, setStickyProjectState] = useState<StickyProject | null>(null);
 
+  // Save project before entering Forge (to restore on leave)
+  const [savedProjectBeforeForge, setSavedProjectBeforeForge] = useState<StickyProject | null>(null);
+
   // Track last context write for heartbeat
   const lastWriteRef = useRef<{ time: number; projectId: string | null; mode: ContextMode }>({
     time: 0,
@@ -204,6 +207,36 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       });
     }
   }, [context]);
+
+  // Forge behavior: clear project on enter, restore on leave
+  const prevResolvedModeRef = useRef<ContextMode | null>(null);
+  useEffect(() => {
+    const prevMode = prevResolvedModeRef.current;
+    const currentMode = resolvedMode;
+
+    // Entering Forge from non-Forge
+    if (currentMode === 'forge' && prevMode !== 'forge' && prevMode !== null) {
+      // Save current sticky project before clearing
+      if (stickyProject) {
+        setSavedProjectBeforeForge(stickyProject);
+      }
+      // Clear sticky project so header shows "Select Project"
+      setStickyProjectState(null);
+      console.log('[UserContext] Entering Forge - saved project:', stickyProject?.name);
+    }
+
+    // Leaving Forge to non-Forge
+    if (currentMode !== 'forge' && prevMode === 'forge') {
+      // Restore saved project
+      if (savedProjectBeforeForge) {
+        setStickyProjectState(savedProjectBeforeForge);
+        console.log('[UserContext] Leaving Forge - restored project:', savedProjectBeforeForge.name);
+        setSavedProjectBeforeForge(null);
+      }
+    }
+
+    prevResolvedModeRef.current = currentMode;
+  }, [resolvedMode, stickyProject, savedProjectBeforeForge]);
 
   const setUserIdentity = useCallback((newUserId: string, newPcTag: string) => {
     setUserId(newUserId);

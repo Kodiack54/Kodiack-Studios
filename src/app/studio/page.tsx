@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { PageTitleContext, PageActionsContext } from '@/app/layout';
 import { useDeveloper, DEVELOPER_TEAMS, ParentProject } from '@/app/contexts/DeveloperContext';
 import { useUser, useMinRole } from '@/app/settings/UserContext';
+import { useUserContext } from '@/app/contexts/UserContextProvider';
 import { useProjectAutoFlip } from '@/app/hooks/useContextAutoFlip';
 import { Lock, FolderOpen, FileText } from 'lucide-react';
 import { DraggableSidebar, SidebarItem } from './components';
@@ -64,6 +65,7 @@ export default function StudioPage() {
   const setPageActions = useContext(PageActionsContext);
   const { selectedTeam, selectTeamById, connectionStatus, connect, disconnect, selectedProject, setSelectedProject, pcTag } = useDeveloper();
   const { user } = useUser();
+  const { setStickyProject } = useUserContext();
   const isEngineer = useMinRole('engineer');
   const [activePanel, setActivePanel] = useState<string | null>('browser');
 
@@ -190,16 +192,9 @@ export default function StudioPage() {
     });
 
     // Only show project/environment in header when connected (locked in)
-    if (connectionStatus === 'connected' && selectedProject) {
+    if (connectionStatus === 'connected') {
       setPageActions(
         <div className="flex items-center gap-2 w-full">
-          {/* Locked Project Display */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 rounded-lg border border-cyan-500/50">
-            <FolderOpen className="w-4 h-4 text-cyan-400" />
-            <span className="text-cyan-400 text-sm font-medium">{selectedProject.name}</span>
-            <Lock className="w-3 h-3 text-cyan-400/60" />
-          </div>
-
           {/* Environment Dropdown */}
           <select
             value={selectedEnv.id}
@@ -214,7 +209,7 @@ export default function StudioPage() {
             ))}
           </select>
 
-          {/* Briefing Button - Far Right with thin black border */}
+          {/* Briefing Button - Far Right */}
           <button
             onClick={() => setShowBriefingOverlay(true)}
             className="flex items-center gap-2 px-3 py-1.5 ml-auto bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium rounded-lg border border-gray-900 hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md"
@@ -358,7 +353,17 @@ export default function StudioPage() {
 
               {/* Connect Button */}
               <button
-                onClick={() => user?.id && connect(user.id)}
+                onClick={() => {
+                  if (user?.id && selectedProject) {
+                    // Sync header ContextIndicator with Studio selection
+                    setStickyProject({
+                      id: selectedProject.id,
+                      slug: selectedProject.slug || '',
+                      name: selectedProject.name,
+                    });
+                    connect(user.id);
+                  }
+                }}
                 disabled={!user?.id || !selectedProject || connectionStatus === 'connecting'}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
