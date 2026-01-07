@@ -26,10 +26,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    // Filter out system/placeholder projects (Unrouted, Unassigned)
+    const SYSTEM_SLUGS = ['unrouted', 'unassigned', 'system-unrouted', 'terminal-unrouted'];
+    const filtered = (data || []).filter((p: { slug?: string; name?: string }) => {
+      const slug = (p.slug || '').toLowerCase();
+      const name = (p.name || '').toLowerCase();
+      return !SYSTEM_SLUGS.some(s => slug.includes(s)) &&
+             !name.includes('unrouted') &&
+             !name.includes('unassigned');
+    });
+
     return NextResponse.json({
       success: true,
-      projects: data || [],
-      count: (data || []).length
+      projects: filtered,
+      count: filtered.length
     });
 
   } catch (error) {
