@@ -3,7 +3,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { PageTitleContext, PageActionsContext } from '@/app/layout';
 import { useSupportAutoFlip } from '@/app/hooks/useContextAutoFlip';
-import { STUDIO_SERVICES, StudioService, getPipelineServices, getAITeamServices } from './config';
+import { STUDIO_SERVICES, StudioService, getAllServicesSorted } from './config';
 import { ServiceHealth, HealthResponse, PipelineStats, StatsResponse } from './lib/types';
 import ServiceCard from './components/ServiceCard';
 import ServiceDetailPanel from './components/ServiceDetailPanel';
@@ -94,8 +94,8 @@ export default function OperationsClient() {
     if (service) setSelectedService(service);
   };
 
-  const pipelineServices = getPipelineServices();
-  const aiTeamServices = getAITeamServices();
+  // Get all services sorted by port (user-pc first, then by port number)
+  const sortedServices = getAllServicesSorted();
 
   // Count health statuses
   const countByStatus = (serviceList: StudioService[], status: string) => {
@@ -113,68 +113,42 @@ export default function OperationsClient() {
 
       {/* Top Row: Service List (3/4) + Detail Panel (1/4) */}
       <div className="flex-shrink-0 flex gap-4 mx-4">
-        {/* Service List - 3/4 width */}
+        {/* Service List - 3/4 width - Single sorted list */}
         <div className="w-3/4 bg-gray-800 border border-gray-700 rounded-xl overflow-hidden h-[320px] flex flex-col">
-          {/* Header with tabs for Pipeline/AI Team */}
+          {/* Header */}
           <div className="flex-shrink-0 bg-black/30 px-4 py-2 border-b border-gray-700">
             <div className="flex items-center justify-between">
               <h3 className="text-xs uppercase text-gray-500 font-medium tracking-wide">
-                Studio Services ({services.length})
+                Studio Services ({sortedServices.length})
               </h3>
               <div className="flex items-center gap-4 text-xs text-gray-500">
                 <span className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
-                  {countByStatus(services, 'online')} Online
+                  {countByStatus(sortedServices, 'online')} Online
                 </span>
                 <span className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                  {countByStatus(services, 'degraded')} Degraded
+                  {countByStatus(sortedServices, 'degraded')} Degraded
                 </span>
                 <span className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-red-500" />
-                  {countByStatus(services, 'offline')} Offline
+                  {countByStatus(sortedServices, 'offline')} Offline
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Two-column layout: Pipeline | AI Team */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* Pipeline Column */}
-            <div className="w-1/2 flex flex-col border-r border-gray-700">
-              <div className="px-3 py-1.5 bg-gray-900/50 text-xs text-gray-400 font-medium border-b border-gray-700">
-                Pipeline ({pipelineServices.length})
-              </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-gray-700/50">
-                {pipelineServices.map(service => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    health={healthData[service.id]}
-                    isSelected={selectedService?.id === service.id}
-                    onClick={() => setSelectedService(service)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* AI Team Column */}
-            <div className="w-1/2 flex flex-col">
-              <div className="px-3 py-1.5 bg-gray-900/50 text-xs text-gray-400 font-medium border-b border-gray-700">
-                AI Team ({aiTeamServices.length})
-              </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-gray-700/50">
-                {aiTeamServices.map(service => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    health={healthData[service.id]}
-                    isSelected={selectedService?.id === service.id}
-                    onClick={() => setSelectedService(service)}
-                  />
-                ))}
-              </div>
-            </div>
+          {/* Single sorted list by port */}
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-700/50">
+            {sortedServices.map(service => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                health={healthData[service.id]}
+                isSelected={selectedService?.id === service.id}
+                onClick={() => setSelectedService(service)}
+              />
+            ))}
           </div>
         </div>
 

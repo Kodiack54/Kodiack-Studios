@@ -6,6 +6,9 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { User, Users, Calendar, CalendarCheck, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import ServerStatusIndicator, { ProjectStatus, SlotStatus } from './ServerStatusIndicator';
 import ServerDetailPanel from './ServerDetailPanel';
+import OperationsStatusIndicator from '@/app/operations/components/OperationsStatusIndicator';
+import OperationsDetailPanel from '@/app/operations/components/OperationsDetailPanel';
+import { StudioService } from '@/app/operations/config';
 import { ProductionStatusContext } from '@/app/layout';
 import { useUserContext } from '@/app/contexts/UserContextProvider';
 
@@ -45,6 +48,7 @@ export default function Sidebar() {
   const isCalendarPage = pathname?.startsWith('/calendar');
   const isDevToolsPage = pathname?.startsWith('/dev-controls');
   const isServersPage = pathname?.startsWith('/servers');
+  const isOperationsPage = pathname?.startsWith('/operations');
   const calendarMode = searchParams?.get('mode') || 'my';
   const selectedMemberId = searchParams?.get('member');
   const selectedTeamId = searchParams?.get('team');
@@ -67,6 +71,10 @@ export default function Sidebar() {
   const [selectedProject, setSelectedProject] = useState<ProjectStatus | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<SlotStatus | null>(null);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
+
+  // Operations detail panel state
+  const [selectedOpsService, setSelectedOpsService] = useState<StudioService | null>(null);
+  const [showOpsDetailPanel, setShowOpsDetailPanel] = useState(false);
 
   // Auto-collapse servers on calendar page, auto-expand on other pages
   useEffect(() => {
@@ -126,6 +134,17 @@ export default function Sidebar() {
     setShowDetailPanel(false);
     setSelectedProject(null);
     setSelectedSlot(null);
+  };
+
+  // Operations handlers
+  const handleSelectOpsService = (service: StudioService) => {
+    setSelectedOpsService(service);
+    setShowOpsDetailPanel(true);
+  };
+
+  const handleCloseOpsDetailPanel = () => {
+    setShowOpsDetailPanel(false);
+    setSelectedOpsService(null);
   };
 
   const handleReboot = async (target: 'all' | 'main' | number) => {
@@ -188,6 +207,16 @@ export default function Sidebar() {
               onSelectSlot={handleSelectSlot}
               selectedProjectId={selectedProject?.id}
               selectedSlotId={selectedSlot?.slotId}
+            />
+          </div>
+        )}
+
+        {/* Operations Section - Only on Operations tab */}
+        {isOperationsPage && (
+          <div className="flex-shrink-0 px-2 py-4 border-b border-gray-700">
+            <OperationsStatusIndicator
+              onSelectService={handleSelectOpsService}
+              selectedServiceId={selectedOpsService?.id}
             />
           </div>
         )}
@@ -572,6 +601,14 @@ export default function Sidebar() {
           onClose={handleCloseDetailPanel}
           onReboot={handleReboot}
           onServerAction={handleServerAction}
+        />
+      )}
+
+      {/* Operations Detail Panel - Slides in from right */}
+      {showOpsDetailPanel && selectedOpsService && (
+        <OperationsDetailPanel
+          service={selectedOpsService}
+          onClose={handleCloseOpsDetailPanel}
         />
       )}
     </>
