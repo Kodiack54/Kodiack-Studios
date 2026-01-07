@@ -6,7 +6,6 @@ import type { Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { useUser } from '@/app/settings/UserContext';
-import { useDeveloper, type TerminalOutputMessage } from '@/app/contexts/DeveloperContext';
 
 import {
   type ChatLogMessage,
@@ -42,33 +41,17 @@ export function ClaudeTerminal({
   onConnectionChange,
 }: ClaudeTerminalProps) {
   const { user } = useUser();
-
-  // Use shared WebSocket from DeveloperContext for session persistence
-  const {
-    terminalConnected,
-    terminalOutputBuffer,
-    connectTerminal,
-    disconnectTerminal,
-    sendToTerminal,
-    onTerminalMessage,
-    clearOutputBuffer,
-    connectionStatus,
-  } = useDeveloper();
-
+  const wsRef = useRef<WebSocket | null>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const contextSentRef = useRef(false);
 
+  const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [briefingSent, setBriefingSent] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  // Track if we've restored the buffer (only do once per mount)
-  const bufferRestoredRef = useRef(false);
-  // Track if startup sequence has been initiated this session
-  const startupInitiatedRef = useRef(false);
 
   const {
     memoryStatus,
@@ -91,33 +74,27 @@ export function ClaudeTerminal({
   const unlockFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sendMessage = useCallback((message: string) => {
-    if (terminalConnected) {
-      // Send in chunks to avoid overwhelming the terminal
-      const chunkSize = 500;
-      for (let i = 0; i < message.length; i += chunkSize) {
-        const chunk = message.slice(i, i + chunkSize);
-        sendToTerminal(chunk);
-      }
-      sendToTerminal('\r');
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      sendChunkedMessage(wsRef.current, message);
     }
-  }, [terminalConnected, sendToTerminal]);
+  }, []);
 
   // Send interrupt signal (Ctrl+C) to stop current operation
   const sendInterrupt = useCallback(() => {
-    if (terminalConnected) {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
       // Send Ctrl+C (ASCII 0x03) to interrupt the process
-      sendToTerminal('\x03');
+      wsRef.current.send(JSON.stringify({ type: 'input', data: '\x03' }));
       if (xtermRef.current) {
         xtermRef.current.writeln('\x1b[33m\n⏹ Interrupt sent (Ctrl+C)\x1b[0m');
       }
       console.log('[ClaudeTerminal] Interrupt signal sent');
     }
-  }, [terminalConnected, sendToTerminal]);
+  }, []);
 
   // ESC key handler - sends interrupt to stop Claude
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && terminalConnected) {
+      if (e.key === 'Escape' && connected) {
         e.preventDefault();
         sendInterrupt();
       }
@@ -125,17 +102,17 @@ export function ClaudeTerminal({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [terminalConnected, sendInterrupt]);
+  }, [connected, sendInterrupt]);
 
   useEffect(() => {
     if (sendRef) {
-      sendRef.current = terminalConnected ? sendMessage : null;
+      sendRef.current = connected ? sendMessage : null;
     }
-  }, [sendRef, sendMessage, terminalConnected]);
+  }, [sendRef, sendMessage, connected]);
 
   useEffect(() => {
-    onConnectionChange?.(terminalConnected);
-  }, [terminalConnected, onConnectionChange]);
+    onConnectionChange?.(connected);
+  }, [connected, onConnectionChange]);
 
   // Initialize xterm.js
   useEffect(() => {
@@ -221,159 +198,8 @@ export function ClaudeTerminal({
     };
   }, [port]);
 
-  // Subscribe to terminal messages from DeveloperContext
-  useEffect(() => {
-    const unsubscribe = onTerminalMessage((msg: TerminalOutputMessage) => {
-      if (msg.type === 'output' && msg.data && xtermRef.current) {
-        xtermRef.current.write(msg.data);
-        xtermRef.current.scrollToBottom();
-
-        sendToChad(msg.data);
-
-        const cleanData = cleanAnsiCodes(msg.data);
-
-        // Detect when Claude Code TUI has loaded
-        if (!claudeCodeLoadedRef.current) {
-          const hasClaudeUI = cleanData.includes('Claude Code') ||
-                             cleanData.includes('Opus') ||
-                             cleanData.includes('What would you like') ||
-                             cleanData.includes('How can I help') ||
-                             cleanData.includes('❯');
-          if (hasClaudeUI) {
-            claudeCodeLoadedRef.current = true;
-            console.log('[ClaudeTerminal] Claude Code TUI detected');
-          }
-        }
-
-        // Early unlock when Claude starts responding to /startproject
-        if (!briefingSentToClaudeRef.current && claudeCodeLoadedRef.current && contextSentRef.current) {
-          const hasBriefingOutput = cleanData.includes('PROJECT BRIEFING') ||
-                                    cleanData.includes('Ready to work') ||
-                                    cleanData.includes('Project Snapshot') ||
-                                    cleanData.includes('briefingPacket');
-          if (hasBriefingOutput) {
-            briefingSentToClaudeRef.current = true;
-            if (unlockFallbackRef.current) {
-              clearTimeout(unlockFallbackRef.current);
-              unlockFallbackRef.current = null;
-            }
-            setBriefingSent(true);
-            console.log('[ClaudeTerminal] Briefing output detected - chat unlocked');
-            if (xtermRef.current) {
-              xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
-            }
-          }
-        }
-      } else if (msg.type === 'exit') {
-        if (xtermRef.current) {
-          xtermRef.current.writeln(`\x1b[33m[Process exited: ${msg.code}]\x1b[0m`);
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [onTerminalMessage, sendToChad]);
-
-  // Restore buffer when navigating back to terminal (if already connected)
-  useEffect(() => {
-    if (xtermRef.current && terminalConnected && terminalOutputBuffer.length > 0 && !bufferRestoredRef.current) {
-      console.log('[ClaudeTerminal] Restoring terminal buffer:', terminalOutputBuffer.length, 'messages');
-      // Clear terminal and restore buffer
-      xtermRef.current.clear();
-      xtermRef.current.writeln('\x1b[36m═══════════════════════════════════════════\x1b[0m');
-      xtermRef.current.writeln(`\x1b[36m   🤖 AI Team Member Terminal (${port})       \x1b[0m`);
-      xtermRef.current.writeln('\x1b[36m═══════════════════════════════════════════\x1b[0m');
-      xtermRef.current.writeln('\x1b[32m[Session Restored]\x1b[0m');
-      xtermRef.current.writeln('');
-
-      terminalOutputBuffer.forEach(msg => {
-        if (msg.type === 'output' && msg.data) {
-          xtermRef.current?.write(msg.data);
-        }
-      });
-      xtermRef.current.scrollToBottom();
-      bufferRestoredRef.current = true;
-
-      // If reconnecting, mark briefing as already sent (Claude is already running)
-      briefingSentToClaudeRef.current = true;
-      claudeCodeLoadedRef.current = true;
-      setBriefingSent(true);
-    }
-  }, [terminalConnected, terminalOutputBuffer, port]);
-
-  // Run startup sequence when connection is established (fresh connect only)
-  const runStartupSequence = useCallback(async () => {
-    if (!terminalConnected || startupInitiatedRef.current) return;
-    startupInitiatedRef.current = true;
-
-    console.log('[ClaudeTerminal] Running startup sequence');
-    setConnecting(false);
-
-    connectToChad();
-
-    if (xtermRef.current) {
-      xtermRef.current.writeln('\x1b[32m[Connected]\x1b[0m');
-      xtermRef.current.writeln('');
-      xtermRef.current.writeln('\x1b[36m☕ Hold please... your AI team member will be right with you.\x1b[0m');
-      xtermRef.current.writeln('\x1b[90m   Starting Claude Code...\x1b[0m');
-
-      const context = await fetchSusanContext();
-      if (context) {
-        xtermRef.current.writeln('\x1b[35m   📚 Loading project context...\x1b[0m');
-      }
-      xtermRef.current.writeln('');
-    }
-
-    // Start Claude Code: type "claude", wait, press Enter, wait for load, then send briefing
-    setTimeout(() => {
-      if (terminalConnected) {
-        // Step 1: Type "claude" (without Enter)
-        sendToTerminal('claude');
-
-        // Step 2: After 500ms, press Enter to execute
-        setTimeout(() => {
-          if (terminalConnected) {
-            sendToTerminal('\r');
-
-            // Step 3: Wait for Claude to fully load, then send /startproject
-            setTimeout(() => {
-              if (!contextSentRef.current && terminalConnected) {
-                contextSentRef.current = true;
-
-                console.log('[ClaudeTerminal] Sending /startproject skill command');
-
-                // Send /startproject command with projectId
-                sendToTerminal(`/startproject ${projectId || ''}\r`);
-
-                // Send extra Enter after 900ms to ensure command executes
-                setTimeout(() => {
-                  if (terminalConnected) {
-                    sendToTerminal('\r');
-                  }
-                }, 900);
-
-                // Unlock only after output arrives OR 12s fallback timeout
-                unlockFallbackRef.current = setTimeout(() => {
-                  if (!briefingSentToClaudeRef.current) {
-                    briefingSentToClaudeRef.current = true;
-                    setBriefingSent(true);
-                    if (xtermRef.current) {
-                      xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
-                    }
-                  }
-                }, 12000);
-              }
-            }, BRIEFING_FALLBACK_MS);
-          }
-        }, 500);
-      }
-    }, 2000);
-
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, [terminalConnected, projectId, fetchSusanContext, connectToChad, sendToTerminal]);
-
   const connect = useCallback(async () => {
-    if (terminalConnected) return;
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     // Safety guard - never connect without full session context
     if (!projectId || !userId || !pcTag) {
@@ -387,38 +213,181 @@ export function ClaudeTerminal({
 
     setConnecting(true);
     contextSentRef.current = false;
-    startupInitiatedRef.current = false;
-    bufferRestoredRef.current = false;
 
-    // Connect via shared WebSocket in DeveloperContext
-    connectTerminal();
-  }, [terminalConnected, projectId, userId, pcTag, connectTerminal]);
+    const contextPromise = fetchSusanContext();
 
-  // Detect when connection is established and run startup
-  useEffect(() => {
-    if (terminalConnected && connecting && !startupInitiatedRef.current) {
-      runStartupSequence();
-    }
-  }, [terminalConnected, connecting, runStartupSequence]);
+    // Build WebSocket URL with session context for transcript tracking
+    let serverUrl = wsUrl || `ws://${DEV_DROPLET}:${port}?path=${encodeURIComponent(projectPath)}`;
+    if (projectId) serverUrl += `&project_id=${encodeURIComponent(projectId)}`;
+    if (projectSlug) serverUrl += `&project_slug=${encodeURIComponent(projectSlug)}`;
+    if (userId) serverUrl += `&user_id=${encodeURIComponent(userId)}`;
+    if (pcTag) serverUrl += `&pc_tag=${encodeURIComponent(pcTag)}`;
+    console.log('[ClaudeTerminal] Connecting via WebSocket to:', serverUrl);
+
+    const ws = new WebSocket(serverUrl);
+
+    ws.onopen = async () => {
+      console.log('[ClaudeTerminal] WebSocket connected');
+      setConnected(true);
+      setConnecting(false);
+
+      connectToChad();
+
+      if (xtermRef.current) {
+        xtermRef.current.writeln('\x1b[32m[Connected]\x1b[0m');
+        xtermRef.current.writeln('');
+        xtermRef.current.writeln('\x1b[36m☕ Hold please... your AI team member will be right with you.\x1b[0m');
+        xtermRef.current.writeln('\x1b[90m   Starting Claude Code...\x1b[0m');
+
+        const context = await contextPromise;
+        if (context) {
+          xtermRef.current.writeln('\x1b[35m   📚 Loading project context...\x1b[0m');
+        }
+        xtermRef.current.writeln('');
+      }
+
+      if (fitAddonRef.current && xtermRef.current) {
+        ws.send(JSON.stringify({ type: 'resize', cols: xtermRef.current.cols, rows: xtermRef.current.rows }));
+      }
+
+      // Start Claude Code: type "claude", wait, press Enter, wait for load, then send briefing
+      setTimeout(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          // Step 1: Type "claude" (without Enter)
+          ws.send(JSON.stringify({ type: 'input', data: 'claude' }));
+
+          // Step 2: After 500ms, press Enter to execute
+          setTimeout(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'input', data: '\r' }));
+
+              // Step 3: Wait for Claude to fully load, then send /startproject
+              setTimeout(() => {
+                if (!contextSentRef.current && ws.readyState === WebSocket.OPEN) {
+                  contextSentRef.current = true;
+
+                  console.log('[ClaudeTerminal] Sending /startproject skill command');
+
+                  // Send /startproject command with projectId (intercepted by terminal server)
+                  ws.send(JSON.stringify({ type: 'input', data: `/startproject ${projectId || ''}\r` }));
+
+                  // Send extra Enter after 900ms to ensure command executes
+                  setTimeout(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                      ws.send(JSON.stringify({ type: 'input', data: '\r' }));
+                    }
+                  }, 900);
+
+                  // Unlock only after output arrives OR 12s fallback timeout
+                  unlockFallbackRef.current = setTimeout(() => {
+                    if (!briefingSentToClaudeRef.current) {
+                      briefingSentToClaudeRef.current = true;
+                      setBriefingSent(true);
+                      if (xtermRef.current) {
+                        xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
+                      }
+                    }
+                  }, 12000);
+                }
+              }, BRIEFING_FALLBACK_MS);
+            }
+          }, 500);
+        }
+      }, 2000);
+
+      setTimeout(() => inputRef.current?.focus(), 100);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'output' && xtermRef.current) {
+          xtermRef.current.write(msg.data);
+          xtermRef.current.scrollToBottom();
+
+          sendToChad(msg.data);
+
+          const cleanData = cleanAnsiCodes(msg.data);
+
+          // Detect when Claude Code TUI has loaded
+          if (!claudeCodeLoadedRef.current) {
+            const hasClaudeUI = cleanData.includes('Claude Code') ||
+                               cleanData.includes('Opus') ||
+                               cleanData.includes('What would you like') ||
+                               cleanData.includes('How can I help') ||
+                               cleanData.includes('❯');
+            if (hasClaudeUI) {
+              claudeCodeLoadedRef.current = true;
+              console.log('[ClaudeTerminal] Claude Code TUI detected');
+            }
+          }
+
+          // Early unlock when Claude starts responding to /startproject
+          if (!briefingSentToClaudeRef.current && claudeCodeLoadedRef.current && contextSentRef.current) {
+            // Check for briefing output indicators
+            const hasBriefingOutput = cleanData.includes('PROJECT BRIEFING') ||
+                                      cleanData.includes('Ready to work') ||
+                                      cleanData.includes('Project Snapshot') ||
+                                      cleanData.includes('briefingPacket');
+            if (hasBriefingOutput) {
+              briefingSentToClaudeRef.current = true;
+              if (unlockFallbackRef.current) {
+                clearTimeout(unlockFallbackRef.current);
+                unlockFallbackRef.current = null;
+              }
+              setBriefingSent(true);
+              console.log('[ClaudeTerminal] Briefing output detected - chat unlocked');
+              if (xtermRef.current) {
+                xtermRef.current.writeln('\x1b[32m\n✅ Ready - chat box unlocked\x1b[0m');
+              }
+            }
+          }
+        } else if (msg.type === 'exit') {
+          if (xtermRef.current) {
+            xtermRef.current.writeln(`\x1b[33m[Process exited: ${msg.code}]\x1b[0m`);
+          }
+          setConnected(false);
+        }
+      } catch (e) {
+        console.error('[ClaudeTerminal] Message parse error:', e);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('[ClaudeTerminal] WebSocket error:', error);
+      if (xtermRef.current) {
+        xtermRef.current.writeln('\x1b[31m[Connection error]\x1b[0m');
+      }
+      setConnecting(false);
+    };
+
+    ws.onclose = () => {
+      console.log('[ClaudeTerminal] WebSocket closed');
+      setConnected(false);
+      setConnecting(false);
+      setBriefingSent(false);
+      if (xtermRef.current) {
+        xtermRef.current.writeln('\x1b[33m[Disconnected]\x1b[0m');
+      }
+    };
+
+    wsRef.current = ws;
+  }, [projectPath, wsUrl, port, projectId, projectSlug, userId, pcTag, fetchSusanContext, susanContextRef, connectToChad, sendToChad]);
 
   const disconnect = useCallback(() => {
-    // Disconnect via shared WebSocket in DeveloperContext
-    disconnectTerminal();
+    wsRef.current?.close();
+    wsRef.current = null;
     disconnectChad();
+    setConnected(false);
     setBriefingSent(false);
     resetSusan();
     briefingSentToClaudeRef.current = false;
     claudeCodeLoadedRef.current = false;
-    startupInitiatedRef.current = false;
-    bufferRestoredRef.current = false;
     if (unlockFallbackRef.current) {
       clearTimeout(unlockFallbackRef.current);
       unlockFallbackRef.current = null;
     }
-    if (xtermRef.current) {
-      xtermRef.current.writeln('\x1b[33m[Disconnected]\x1b[0m');
-    }
-  }, [disconnectTerminal, disconnectChad, resetSusan]);
+  }, [disconnectChad, resetSusan]);
 
   useEffect(() => {
     if (connectRef) {
@@ -430,21 +399,15 @@ export function ClaudeTerminal({
   // the connection sequence (select team → pick project → connect)
 
   const sendInput = useCallback(() => {
-    if (terminalConnected) {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
       if (inputValue.trim()) {
-        // Send in chunks to avoid overwhelming the terminal
-        const chunkSize = 500;
-        for (let i = 0; i < inputValue.length; i += chunkSize) {
-          const chunk = inputValue.slice(i, i + chunkSize);
-          sendToTerminal(chunk);
-        }
-        sendToTerminal('\r');
+        sendChunkedMessage(wsRef.current, inputValue);
       } else {
-        sendToTerminal('\r');
+        sendEnter(wsRef.current);
       }
       setInputValue('');
     }
-  }, [terminalConnected, inputValue, sendToTerminal]);
+  }, [inputValue]);
 
   return (
     <div className="flex flex-col h-full bg-gray-900">
@@ -455,13 +418,13 @@ export function ClaudeTerminal({
           <span className="text-sm font-medium text-white">AI Worker</span>
           <span className="text-xs text-orange-400/60">[:{port}]</span>
           <span className={`px-1.5 py-0.5 text-xs rounded ${
-            terminalConnected ? 'bg-green-600/20 text-green-400' :
+            connected ? 'bg-green-600/20 text-green-400' :
             connecting ? 'bg-yellow-600/20 text-yellow-400' :
             'bg-gray-700 text-gray-400'
           }`}>
-            {terminalConnected ? 'Connected' : connecting ? 'Connecting...' : 'Disconnected'}
+            {connected ? 'Connected' : connecting ? 'Connecting...' : 'Disconnected'}
           </span>
-          {terminalConnected && (
+          {connected && (
             <span className={`flex items-center gap-1 px-1.5 py-0.5 text-xs rounded ${
               memoryStatus === 'loaded' ? 'bg-purple-600/20 text-purple-400' :
               memoryStatus === 'loading' ? 'bg-yellow-600/20 text-yellow-400' :
@@ -474,7 +437,7 @@ export function ClaudeTerminal({
         </div>
 
         <div className="flex items-center gap-1">
-          {terminalConnected ? (
+          {connected ? (
             <>
               {/* Stop button - sends Ctrl+C interrupt */}
               <button
@@ -523,9 +486,9 @@ export function ClaudeTerminal({
       <div className="shrink-0 border-t-2 border-orange-600">
         <div className="px-2 py-1 bg-orange-600/20 flex items-center gap-2">
           <span className="text-orange-400 text-xs font-medium">Chat with Claude</span>
-          {!terminalConnected && <span className="text-orange-400/50 text-xs">(connecting...)</span>}
-          {terminalConnected && !briefingSent && <span className="text-yellow-400/70 text-xs">(loading Claude & briefing...)</span>}
-          {terminalConnected && briefingSent && <span className="text-green-400/70 text-xs">(ready)</span>}
+          {!connected && <span className="text-orange-400/50 text-xs">(connecting...)</span>}
+          {connected && !briefingSent && <span className="text-yellow-400/70 text-xs">(loading Claude & briefing...)</span>}
+          {connected && briefingSent && <span className="text-green-400/70 text-xs">(ready)</span>}
         </div>
         <div className="px-2 py-2 bg-gray-800">
           <textarea
@@ -535,16 +498,16 @@ export function ClaudeTerminal({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                if (terminalConnected && briefingSent) sendInput();
+                if (connected && briefingSent) sendInput();
               }
             }}
             placeholder={
-              !terminalConnected ? "Connecting to Claude..." :
+              !connected ? "Connecting to Claude..." :
               !briefingSent ? "Please wait - loading Claude and sending briefing..." :
               "Type a message and press Enter... (Shift+Enter for new line)"
             }
             rows={4}
-            disabled={!terminalConnected || !briefingSent}
+            disabled={!connected || !briefingSent}
             className="w-full bg-gray-900 border-2 border-orange-600 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>

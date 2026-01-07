@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 
 // Developer team definitions with port ranges
 export interface DeveloperTeam {
@@ -50,14 +50,6 @@ export interface ParentProject {
   server_path?: string;
 }
 
-// Terminal output message for buffering
-export interface TerminalOutputMessage {
-  type: 'output' | 'exit';
-  data?: string;
-  code?: number;
-  timestamp: number;
-}
-
 interface DeveloperContextValue {
   // Team selection
   selectedTeam: DeveloperTeam;
@@ -78,15 +70,6 @@ interface DeveloperContextValue {
   // Actions
   connect: (userId: string) => Promise<void>;
   disconnect: () => Promise<void>;
-
-  // Terminal WebSocket (persistent across navigation)
-  terminalConnected: boolean;
-  terminalOutputBuffer: TerminalOutputMessage[];
-  connectTerminal: () => void;
-  disconnectTerminal: () => void;
-  sendToTerminal: (data: string) => void;
-  onTerminalMessage: (handler: (msg: TerminalOutputMessage) => void) => () => void;
-  clearOutputBuffer: () => void;
 }
 
 const DeveloperContext = createContext<DeveloperContextValue>({
@@ -102,13 +85,6 @@ const DeveloperContext = createContext<DeveloperContextValue>({
   pcTag: null,
   connect: async () => {},
   disconnect: async () => {},
-  terminalConnected: false,
-  terminalOutputBuffer: [],
-  connectTerminal: () => {},
-  disconnectTerminal: () => {},
-  sendToTerminal: () => {},
-  onTerminalMessage: () => () => {},
-  clearOutputBuffer: () => {},
 });
 
 // Session storage key for persisting connection state
@@ -150,9 +126,6 @@ function savePersistedSession(session: PersistedSession | null) {
   }
 }
 
-// Server droplet IP for WebSocket connection
-const DEV_DROPLET = '161.35.229.220';
-
 export function DeveloperProvider({ children }: { children: ReactNode }) {
   // Initialize from persisted session
   const [initialized, setInitialized] = useState(false);
@@ -163,12 +136,6 @@ export function DeveloperProvider({ children }: { children: ReactNode }) {
   const [lockedUserId, setLockedUserId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [pcTag, setPcTag] = useState<string | null>(null);
-
-  // Terminal WebSocket state (persistent across navigation)
-  const terminalWsRef = useRef<WebSocket | null>(null);
-  const [terminalConnected, setTerminalConnected] = useState(false);
-  const [terminalOutputBuffer, setTerminalOutputBuffer] = useState<TerminalOutputMessage[]>([]);
-  const terminalMessageHandlers = useRef<Set<(msg: TerminalOutputMessage) => void>>(new Set());
 
   // Restore session from sessionStorage on mount
   useEffect(() => {
@@ -270,14 +237,6 @@ export function DeveloperProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(async () => {
     if (connectionStatus !== 'connected') return;
 
-    // Close terminal WebSocket
-    if (terminalWsRef.current) {
-      terminalWsRef.current.close();
-      terminalWsRef.current = null;
-      setTerminalConnected(false);
-      setTerminalOutputBuffer([]);
-    }
-
     try {
       await fetch('/api/dev-session/disconnect', {
         method: 'POST',
@@ -303,90 +262,6 @@ export function DeveloperProvider({ children }: { children: ReactNode }) {
     }
   }, [connectionStatus, sessionId, selectedTeam]);
 
-  // Terminal WebSocket methods (persistent across navigation)
-  const connectTerminal = useCallback(() => {
-    if (terminalWsRef.current?.readyState === WebSocket.OPEN) return;
-    if (!selectedProject || connectionStatus !== 'connected') return;
-
-    const projectPath = selectedProject.server_path || '/var/www/Studio';
-    const port = selectedTeam.basePort;
-
-    let serverUrl = `ws://${DEV_DROPLET}:${port}?path=${encodeURIComponent(projectPath)}`;
-    if (selectedProject.id) serverUrl += `&project_id=${encodeURIComponent(selectedProject.id)}`;
-    if (selectedProject.slug) serverUrl += `&project_slug=${encodeURIComponent(selectedProject.slug)}`;
-    if (lockedUserId) serverUrl += `&user_id=${encodeURIComponent(lockedUserId)}`;
-    if (pcTag) serverUrl += `&pc_tag=${encodeURIComponent(pcTag)}`;
-
-    console.log('[DeveloperContext] Connecting terminal WebSocket:', serverUrl);
-    const ws = new WebSocket(serverUrl);
-
-    ws.onopen = () => {
-      console.log('[DeveloperContext] Terminal WebSocket connected');
-      setTerminalConnected(true);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'output' || msg.type === 'exit') {
-          const outputMsg: TerminalOutputMessage = {
-            type: msg.type,
-            data: msg.data,
-            code: msg.code,
-            timestamp: Date.now(),
-          };
-
-          // Buffer output (keep last 1000 messages)
-          setTerminalOutputBuffer(prev => {
-            const newBuffer = [...prev, outputMsg];
-            return newBuffer.slice(-1000);
-          });
-
-          // Notify all registered handlers
-          terminalMessageHandlers.current.forEach(handler => handler(outputMsg));
-        }
-      } catch (e) {
-        console.error('[DeveloperContext] Terminal message parse error:', e);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error('[DeveloperContext] Terminal WebSocket error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('[DeveloperContext] Terminal WebSocket closed');
-      setTerminalConnected(false);
-    };
-
-    terminalWsRef.current = ws;
-  }, [selectedProject, selectedTeam, connectionStatus, lockedUserId, pcTag]);
-
-  const disconnectTerminal = useCallback(() => {
-    if (terminalWsRef.current) {
-      terminalWsRef.current.close();
-      terminalWsRef.current = null;
-      setTerminalConnected(false);
-    }
-  }, []);
-
-  const sendToTerminal = useCallback((data: string) => {
-    if (terminalWsRef.current?.readyState === WebSocket.OPEN) {
-      terminalWsRef.current.send(JSON.stringify({ type: 'input', data }));
-    }
-  }, []);
-
-  const onTerminalMessage = useCallback((handler: (msg: TerminalOutputMessage) => void) => {
-    terminalMessageHandlers.current.add(handler);
-    return () => {
-      terminalMessageHandlers.current.delete(handler);
-    };
-  }, []);
-
-  const clearOutputBuffer = useCallback(() => {
-    setTerminalOutputBuffer([]);
-  }, []);
-
   return (
     <DeveloperContext.Provider value={{
       selectedTeam,
@@ -401,13 +276,6 @@ export function DeveloperProvider({ children }: { children: ReactNode }) {
       pcTag,
       connect,
       disconnect,
-      terminalConnected,
-      terminalOutputBuffer,
-      connectTerminal,
-      disconnectTerminal,
-      sendToTerminal,
-      onTerminalMessage,
-      clearOutputBuffer,
     }}>
       {children}
     </DeveloperContext.Provider>
