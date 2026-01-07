@@ -36,6 +36,11 @@ const STUDIOS_PLATFORM_SLUG = 'studios';
 const STUDIOS_PLATFORM_NAME = 'Studios Platform';
 const HEARTBEAT_INTERVAL = 120_000; // 2 minutes
 
+// Diagnostic constants - instantly identify host/build/cookie issues
+const BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID || 'dev-' + Date.now().toString(36);
+const getOrigin = () => typeof window !== 'undefined' ? window.location.origin : 'server';
+const getCookieReadable = () => typeof document !== 'undefined' ? document.cookie.includes('dev_user=') : false;
+
 export interface UserContext {
   id: string;
   user_id: string;
@@ -167,8 +172,13 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // This ensures heartbeat works even if ContextWrapper hasn't called setUserIdentity yet
   useEffect(() => {
     const devUser = getDevUser();
-    console.log('[UserContext] Bootstrap raw devUser:', devUser);
-    console.log('[UserContext] Bootstrap check:', devUser?.id || 'NO USER');
+    console.log('[UserContext] Bootstrap', {
+      origin: getOrigin(),
+      build: BUILD_ID,
+      cookieReadable: getCookieReadable(),
+      rawDevUser: devUser,
+      userId: devUser?.id || 'NO USER',
+    });
     if (devUser?.id) {
       setUserId(devUser.id);
       setPcTag('studio-terminals');
@@ -180,14 +190,16 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // Debug tick (10s) - Step 1 diagnostic (NO DB writes)
   // Proves interval alive + identity present
   useEffect(() => {
-    console.log('[UserContext] Debug tick mounted');
+    console.log('[UserContext] Debug tick mounted', { origin: getOrigin(), build: BUILD_ID });
     const debugInterval = window.setInterval(() => {
       const devUser = getDevUser();
       console.log('[DEBUG TICK]', {
-        time: new Date().toISOString(),
-        visible: !document.hidden,
+        origin: getOrigin(),
+        build: BUILD_ID,
+        cookieReadable: getCookieReadable(),
         cookieUserId: devUser?.id || 'null',
         refUserId: userIdRef.current || 'null',
+        visible: !document.hidden,
         intervalAlive: true,
       });
     }, 10_000);
