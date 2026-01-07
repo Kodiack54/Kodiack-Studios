@@ -22,7 +22,14 @@ export type ContextSource = 'universal' | 'studio' | 'autoflip' | 'timeclock' | 
 export type EventType = 'flip' | 'heartbeat';
 
 // Constants for Context Contract v1.0
-const SYSTEM_ROUTES = ['/support', '/servers', '/admin', '/security', '/session-logs'];
+// Routes that force mode (others inherit based on whether project is selected)
+const SUPPORT_ROUTES = ['/servers', '/dev-controls', '/helpdesk', '/admin', '/security'];
+const FORGE_ROUTES = ['/the-forge', '/forge'];
+const PLANNING_ROUTES = ['/roadmap', '/planning'];
+// Routes that inherit mode (project if stickyProject set, else support)
+const INHERIT_ROUTES = ['/session-logs', '/ai-team', '/terminal', '/calendar', '/dashboard', '/studio', '/project-management', '/team', '/settings', '/credentials'];
+// System routes force effectiveProject to Studios Platform
+const SYSTEM_ROUTES = ['/servers', '/dev-controls', '/helpdesk', '/admin', '/security'];
 const STUDIOS_PLATFORM_ID = '00000000-0000-0000-0000-000000000001'; // Studios Platform UUID
 const STUDIOS_PLATFORM_SLUG = 'studios';
 const STUDIOS_PLATFORM_NAME = 'Studios Platform';
@@ -138,15 +145,19 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   // Context Contract v1.0: Resolve mode from current route
+  // Some routes force mode, others inherit (project if stickyProject set, else support)
   const resolvedMode = useMemo((): ContextMode => {
-    if (!pathname) return 'project';
-    if (pathname.includes('/planning') || pathname.includes('/roadmap')) return 'planning';
-    if (pathname.includes('/forge')) return 'forge';
-    if (pathname.includes('/support') || pathname.includes('/session-logs') ||
-        pathname.includes('/servers') || pathname.includes('/admin') ||
-        pathname.includes('/security')) return 'support';
-    return 'project';
-  }, [pathname]);
+    if (!pathname) return stickyProject ? 'project' : 'support';
+
+    // Routes that force a specific mode
+    if (PLANNING_ROUTES.some(r => pathname.startsWith(r))) return 'planning';
+    if (FORGE_ROUTES.some(r => pathname.startsWith(r))) return 'forge';
+    if (SUPPORT_ROUTES.some(r => pathname.startsWith(r))) return 'support';
+
+    // Inheriting routes: project if stickyProject set, else support
+    // This includes session-logs, ai-team, terminal, calendar, dashboard, studio, etc.
+    return stickyProject ? 'project' : 'support';
+  }, [pathname, stickyProject]);
 
   // Context Contract v1.0: Detect if on system tab (forces Studios Platform)
   const isSystemTab = useMemo(() => {
