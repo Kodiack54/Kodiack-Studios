@@ -16,6 +16,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { getUser as getDevUser } from '@/lib/auth-client';
 
 export type ContextMode = 'project' | 'forge' | 'support' | 'planning' | 'other' | 'break';
 export type ContextSource = 'universal' | 'studio' | 'autoflip' | 'timeclock' | 'manual';
@@ -161,6 +162,35 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   });
 
   const hasActiveContext = !!context;
+
+  // Self-bootstrap identity from auth-7000 cookie (Step 1 of heartbeat fix)
+  // This ensures heartbeat works even if ContextWrapper hasn't called setUserIdentity yet
+  useEffect(() => {
+    const devUser = getDevUser();
+    console.log('[UserContext] Bootstrap check:', devUser?.id || 'NO USER');
+    if (devUser?.id) {
+      setUserId(devUser.id);
+      setPcTag('studio-terminals');
+      userIdRef.current = devUser.id; // Set ref immediately
+    }
+  }, []);
+
+  // Debug tick (10s) - Step 1 diagnostic (NO DB writes)
+  // Proves interval alive + identity present
+  useEffect(() => {
+    console.log('[UserContext] Debug tick mounted');
+    const debugInterval = window.setInterval(() => {
+      const devUser = getDevUser();
+      console.log('[DEBUG TICK]', {
+        time: new Date().toISOString(),
+        visible: !document.hidden,
+        cookieUserId: devUser?.id || 'null',
+        refUserId: userIdRef.current || 'null',
+        intervalAlive: true,
+      });
+    }, 10_000);
+    return () => window.clearInterval(debugInterval);
+  }, []);
 
   // Get current route for mode resolution
   const pathname = usePathname();
