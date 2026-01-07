@@ -167,11 +167,13 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // This ensures heartbeat works even if ContextWrapper hasn't called setUserIdentity yet
   useEffect(() => {
     const devUser = getDevUser();
+    console.log('[UserContext] Bootstrap raw devUser:', devUser);
     console.log('[UserContext] Bootstrap check:', devUser?.id || 'NO USER');
     if (devUser?.id) {
       setUserId(devUser.id);
       setPcTag('studio-terminals');
       userIdRef.current = devUser.id; // Set ref immediately
+      console.log('[UserContext] Bootstrap set userId + ref:', devUser.id);
     }
   }, []);
 
