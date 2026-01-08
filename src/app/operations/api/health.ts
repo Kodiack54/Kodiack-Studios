@@ -107,7 +107,7 @@ function determineStatus(
 }
 
 /**
- * Get last event time for PC emitters from transcripts table
+ * Get last event time for PC emitters from dev_ops_events (single source of truth)
  */
 async function getLastEventTimes(): Promise<Record<string, number>> {
   try {
@@ -120,20 +120,27 @@ async function getLastEventTimes(): Promise<Record<string, number>> {
       password: process.env.PG_PASSWORD || 'K0d1ack_Pr0d_2025_Rx9',
     });
 
-    // Get most recent transcript for user-pc (pc_tag starts with 'c--users-')
+    // Get last event for user-pc from dev_ops_events
+    // Check for pc_transcript_sent OR transcript_received with source=user-pc
     const result = await pool.query(`
-      SELECT pc_tag, MAX(received_at) as last_event
-      FROM dev_transcripts_raw
-      WHERE received_at > NOW() - INTERVAL '1 hour'
-      GROUP BY pc_tag
+      SELECT service_id, MAX(timestamp) as last_event
+      FROM dev_ops_events
+      WHERE timestamp > NOW() - INTERVAL '1 hour'
+        AND (
+          (service_id = 'user-pc' AND event_type = 'pc_transcript_sent')
+          OR (service_id = 'router-9500' AND event_type = 'transcript_received' AND metadata->>'source' = 'user-pc')
+        )
+      GROUP BY service_id
     `);
 
     await pool.end();
 
     const times: Record<string, number> = {};
     for (const row of result.rows) {
-      if (row.pc_tag?.startsWith('c--users-') || row.pc_tag?.includes('michael')) {
-        times['user-pc'] = new Date(row.last_event).getTime();
+      // Use the most recent event time for user-pc
+      const eventTime = new Date(row.last_event).getTime();
+      if (!times['user-pc'] || eventTime > times['user-pc']) {
+        times['user-pc'] = eventTime;
       }
     }
     return times;
