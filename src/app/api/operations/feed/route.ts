@@ -1,11 +1,10 @@
 /**
  * Operations Live Feed API
- * Returns real events from database for the Operations NOC feed
+ * Reads ONLY from dev_ops_events - the canonical operations event stream
  */
 
 import { NextResponse } from 'next/server';
 
-// Database connection - using environment variables
 const dbConfig = {
   host: process.env.PG_HOST || '161.35.229.220',
   port: parseInt(process.env.PG_PORT || '9432'),
@@ -20,139 +19,95 @@ interface FeedEvent {
   eventType: string;
   message: string;
   timestamp: string;
+  traceId?: string;
   details?: Record<string, unknown>;
 }
 
+// Event type to human message mapping
+function getEventMessage(eventType: string, metadata: Record<string, unknown>): string {
+  const traceLabel = metadata?.trace_id ? ` [${String(metadata.trace_id).slice(-6)}]` : '';
+  const project = metadata?.project_slug || 'unknown';
+  const source = metadata?.source || 'unknown';
+
+  switch (eventType) {
+    case 'pc_transcript_sent':
+      return `Transcript sent → 9500 (${project})${traceLabel}`;
+    case 'terminal_transcript_sent':
+      return `Transcript sent → 9500 (${project})${traceLabel}`;
+    case 'transcript_received':
+      return `Transcript received from ${source} (${project})${traceLabel}`;
+    case 'pc_sender_heartbeat':
+      return `PC heartbeat`;
+    case 'terminal_heartbeat':
+      return `Terminal heartbeat`;
+    case 'router_heartbeat':
+      return `Router heartbeat`;
+    case 'context_flip':
+      return `Context flip → ${metadata?.mode || 'unknown'} (${project})`;
+    case 'context_heartbeat':
+      return `Heartbeat: ${metadata?.mode || 'unknown'} (${project})`;
+    default:
+      return eventType;
+  }
+}
+
+// Event type to badge style
+const eventTypeBadges: Record<string, string> = {
+  pc_transcript_sent: 'SENT',
+  terminal_transcript_sent: 'SENT',
+  transcript_received: 'RECV',
+  pc_sender_heartbeat: 'BEAT',
+  terminal_heartbeat: 'BEAT',
+  router_heartbeat: 'BEAT',
+  context_flip: 'FLIP',
+  context_heartbeat: 'BEAT',
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const since = searchParams.get('since'); // ISO timestamp
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const serviceFilter = searchParams.get('service'); // Optional filter
+  const since = searchParams.get('since');
+  const limit = parseInt(searchParams.get('limit') || '100');
+  const serviceFilter = searchParams.get('service');
 
   try {
     const { Pool } = await import('pg');
     const pool = new Pool(dbConfig);
 
-    const events: FeedEvent[] = [];
-    const sinceTime = since ? new Date(since) : new Date(Date.now() - 30 * 60 * 1000); // Default: last 30 min
+    const sinceTime = since ? new Date(since) : new Date(Date.now() - 30 * 60 * 1000);
 
-    // Query 1: Context flips and heartbeats from dashboard-5500
-    const contextQuery = `
-      SELECT id, event_type, mode, project_slug, project_name, started_at
-      FROM dev_user_context
-      WHERE started_at > $1
-      ORDER BY started_at DESC
-      LIMIT $2
+    // Query dev_ops_events - the ONE source of truth
+    let query = `
+      SELECT id, timestamp, service_id, event_type, trace_id, metadata
+      FROM dev_ops_events
+      WHERE timestamp > $1
     `;
-    const contextResult = await pool.query(contextQuery, [sinceTime.toISOString(), limit]);
+    const params: (string | number)[] = [sinceTime.toISOString()];
 
-    for (const row of contextResult.rows) {
-      const projectName = row.project_slug || row.project_name || null;
-      const mode = row.mode || 'unknown';
-
-      // Build descriptive message based on mode and project
-      let message: string;
-      if (row.event_type === 'flip') {
-        if (mode === 'project' && projectName) {
-          message = `Context flip → ${projectName}`;
-        } else if (mode === 'support') {
-          message = `Context flip → Support Mode`;
-        } else {
-          message = `Context flip → ${mode}`;
-        }
-      } else {
-        // Heartbeat
-        if (mode === 'project' && projectName) {
-          message = `Heartbeat: ${projectName}`;
-        } else if (mode === 'support') {
-          message = `Heartbeat: Support Mode`;
-        } else {
-          message = `Heartbeat: ${mode}`;
-        }
-      }
-
-      events.push({
-        id: row.id,
-        serviceId: 'dashboard-5500',
-        eventType: row.event_type === 'flip' ? 'context_flip' : 'context_heartbeat',
-        message,
-        timestamp: new Date(row.started_at).toISOString(),
-        details: {
-          mode,
-          project: projectName,
-        },
-      });
+    if (serviceFilter) {
+      query += ` AND service_id = $2`;
+      params.push(serviceFilter);
     }
 
-    // Query 2: Transcript dumps from PC and terminal to 9500
-    const transcriptQuery = `
-      SELECT id, source_type, pc_tag, project_slug, received_at, trace_id
-      FROM dev_transcripts_raw
-      WHERE received_at > $1
-      ORDER BY received_at DESC
-      LIMIT $2
-    `;
-    const transcriptResult = await pool.query(transcriptQuery, [sinceTime.toISOString(), limit]);
+    query += ` ORDER BY timestamp DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
 
-    for (const row of transcriptResult.rows) {
-      // Determine source service based on pc_tag
-      let sourceService = 'user-pc';
-      let eventType = 'pc_dump_sent';
+    const result = await pool.query(query, params);
 
-      if (row.pc_tag === 'terminal-5400' || row.pc_tag?.includes('terminal')) {
-        sourceService = 'terminal-5400';
-        eventType = 'terminal_dump_sent';
-      } else if (row.pc_tag?.startsWith('c--users-') || row.pc_tag?.includes('michael')) {
-        sourceService = 'user-pc';
-        eventType = 'pc_dump_sent';
-      }
-
-      const traceId = row.trace_id;
-      const traceLabel = traceId ? ` [${traceId.slice(-6)}]` : '';
-
-      // Source service sends dump
-      events.push({
-        id: `${row.id}-source`,
-        serviceId: sourceService,
-        eventType: eventType,
-        message: `Transcript sent → 9500 (${row.project_slug || 'unknown'})${traceLabel}`,
-        timestamp: new Date(row.received_at).toISOString(),
-        details: {
-          project: row.project_slug,
-          pcTag: row.pc_tag,
-          traceId: traceId,
-        },
-      });
-
-      // 9500 receives the transcript
-      events.push({
-        id: `${row.id}-receipt`,
-        serviceId: 'router-9500',
-        eventType: 'transcript_received',
-        message: `Transcript received from ${sourceService}: ${row.project_slug || 'unknown'}${traceLabel}`,
-        timestamp: new Date(row.received_at).toISOString(),
-        details: {
-          source: sourceService,
-          project: row.project_slug,
-          pcTag: row.pc_tag,
-          traceId: traceId,
-        },
-      });
-    }
-
-    // Sort all events by timestamp descending
-    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    // Apply service filter if provided
-    const filteredEvents = serviceFilter
-      ? events.filter(e => e.serviceId === serviceFilter)
-      : events;
+    const events: FeedEvent[] = result.rows.map(row => ({
+      id: row.id,
+      serviceId: row.service_id,
+      eventType: row.event_type,
+      message: getEventMessage(row.event_type, row.metadata || {}),
+      timestamp: new Date(row.timestamp).toISOString(),
+      traceId: row.trace_id,
+      details: row.metadata,
+    }));
 
     await pool.end();
 
     return NextResponse.json({
       success: true,
-      events: filteredEvents.slice(0, limit),
+      events,
       timestamp: Date.now(),
     });
   } catch (error) {
