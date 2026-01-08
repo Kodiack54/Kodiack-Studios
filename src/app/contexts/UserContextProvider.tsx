@@ -31,7 +31,7 @@ const PLANNING_ROUTES = ['/roadmap', '/planning'];
 const INHERIT_ROUTES = ['/session-logs', '/ai-team', '/terminal', '/calendar', '/dashboard', '/studio', '/project-management', '/team', '/settings', '/credentials'];
 // System routes force effectiveProject to Studios Platform
 const SYSTEM_ROUTES = ['/servers', '/dev-controls', '/helpdesk', '/admin', '/security', '/operations'];
-const STUDIOS_PLATFORM_ID = '00000000-0000-0000-0000-000000000001'; // Studios Platform UUID
+const STUDIOS_PLATFORM_ID = '21bdd846-7b03-4879-b5ea-04263594da1e'; // Studios Platform UUID from dev_projects
 const STUDIOS_PLATFORM_SLUG = 'studios';
 const STUDIOS_PLATFORM_NAME = 'Studios Platform';
 const HEARTBEAT_INTERVAL = 120_000; // 2 minutes
