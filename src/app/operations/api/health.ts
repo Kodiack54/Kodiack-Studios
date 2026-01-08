@@ -78,13 +78,20 @@ function determineStatus(
   pm2Status?: string,
   lastEventTime?: number
 ): ServiceStatus {
-  // PC emitters: check last event time
-  if (service.type === 'pc_emitter') {
+  // PC emitters WITHOUT PM2 (user-pc): check last event time from transcripts
+  if (service.type === 'pc_emitter' && !service.pm2Name) {
     if (!lastEventTime) return 'unknown';
     const minutesSince = (Date.now() - lastEventTime) / 60000;
     if (minutesSince < 5) return 'online';
     if (minutesSince < 30) return 'degraded';
     return 'offline';
+  }
+
+  // PC emitters WITH PM2 (terminal-5400): use PM2 status
+  if (service.type === 'pc_emitter' && service.pm2Name) {
+    if (pm2Status === 'online') return 'online';
+    if (pm2Status === 'stopped' || pm2Status === 'errored') return 'offline';
+    return 'unknown';
   }
 
   // Services with health endpoints
@@ -100,20 +107,61 @@ function determineStatus(
 }
 
 /**
+ * Get last event time for PC emitters from transcripts table
+ */
+async function getLastEventTimes(): Promise<Record<string, number>> {
+  try {
+    const { Pool } = await import('pg');
+    const pool = new Pool({
+      host: process.env.PG_HOST || '161.35.229.220',
+      port: parseInt(process.env.PG_PORT || '9432'),
+      database: process.env.PG_DATABASE || 'kodiack_ai',
+      user: process.env.PG_USER || 'kodiack_admin',
+      password: process.env.PG_PASSWORD || 'K0d1ack_Pr0d_2025_Rx9',
+    });
+
+    // Get most recent transcript for user-pc (pc_tag starts with 'c--users-')
+    const result = await pool.query(`
+      SELECT pc_tag, MAX(received_at) as last_event
+      FROM dev_transcripts_raw
+      WHERE received_at > NOW() - INTERVAL '1 hour'
+      GROUP BY pc_tag
+    `);
+
+    await pool.end();
+
+    const times: Record<string, number> = {};
+    for (const row of result.rows) {
+      if (row.pc_tag?.startsWith('c--users-') || row.pc_tag?.includes('michael')) {
+        times['user-pc'] = new Date(row.last_event).getTime();
+      }
+    }
+    return times;
+  } catch (error) {
+    console.error('[Operations Health] Last event time fetch failed:', error);
+    return {};
+  }
+}
+
+/**
  * Check health of all studio services
  */
 export async function checkAllServicesHealth(): Promise<HealthResponse> {
-  const pm2Statuses = await getPM2Status();
+  const [pm2Statuses, lastEventTimes] = await Promise.all([
+    getPM2Status(),
+    getLastEventTimes(),
+  ]);
 
   // Check all services in parallel
   const healthChecks = await Promise.all(
     STUDIO_SERVICES.map(async (service): Promise<ServiceHealth> => {
       const healthPing = await pingHealthEndpoint(service);
       const pm2 = pm2Statuses[service.pm2Name || ''];
+      const lastEventTime = lastEventTimes[service.id];
 
       return {
         id: service.id,
-        status: determineStatus(service, healthPing.ok, pm2?.status),
+        status: determineStatus(service, healthPing.ok, pm2?.status, lastEventTime),
         pm2Status: pm2?.status as ServiceHealth['pm2Status'],
         healthPing: healthPing.ok,
         cpu: pm2?.cpu,
