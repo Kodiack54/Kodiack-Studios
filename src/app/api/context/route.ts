@@ -218,6 +218,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Also log to dev_ops_events for Operations feed
+    await db.query(
+      `INSERT INTO dev_ops_events (service_id, event_type, trace_id, metadata)
+       VALUES ($1, $2, $3, $4)`,
+      [
+        'dashboard-5500',
+        event_type === 'flip' ? 'context_flip' : 'context_heartbeat',
+        null,
+        JSON.stringify({
+          mode,
+          project_id: project_id || null,
+          project_slug: project_slug || null,
+          project_name: project_name || null,
+        }),
+      ]
+    );
+
     // Build toast message
     let toastMessage = `Context → ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     if (mode === 'project' && (project_name || project_slug)) {
