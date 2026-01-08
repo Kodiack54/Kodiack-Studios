@@ -47,18 +47,39 @@ export async function GET(request: Request) {
     const contextResult = await pool.query(contextQuery, [sinceTime.toISOString(), limit]);
 
     for (const row of contextResult.rows) {
-      const projectInfo = row.project_slug || row.project_name || 'none';
+      const projectName = row.project_slug || row.project_name || null;
+      const mode = row.mode || 'unknown';
+
+      // Build descriptive message based on mode and project
+      let message: string;
+      if (row.event_type === 'flip') {
+        if (mode === 'project' && projectName) {
+          message = `Context flip → ${projectName}`;
+        } else if (mode === 'support') {
+          message = `Context flip → Support Mode`;
+        } else {
+          message = `Context flip → ${mode}`;
+        }
+      } else {
+        // Heartbeat
+        if (mode === 'project' && projectName) {
+          message = `Heartbeat: ${projectName}`;
+        } else if (mode === 'support') {
+          message = `Heartbeat: Support Mode`;
+        } else {
+          message = `Heartbeat: ${mode}`;
+        }
+      }
+
       events.push({
         id: row.id,
         serviceId: 'dashboard-5500',
         eventType: row.event_type === 'flip' ? 'context_flip' : 'context_heartbeat',
-        message: row.event_type === 'flip'
-          ? `Context flip: ${row.mode} → ${projectInfo}`
-          : `Heartbeat: ${row.mode} / ${projectInfo}`,
+        message,
         timestamp: new Date(row.started_at).toISOString(),
         details: {
-          mode: row.mode,
-          project: projectInfo,
+          mode,
+          project: projectName,
         },
       });
     }
