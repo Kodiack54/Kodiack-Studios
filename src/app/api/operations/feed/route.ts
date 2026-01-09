@@ -25,27 +25,36 @@ interface FeedEvent {
 
 // Event type to human message mapping
 function getEventMessage(eventType: string, metadata: Record<string, unknown>): string {
-  const traceLabel = metadata?.trace_id ? ` [${String(metadata.trace_id).slice(-6)}]` : '';
-  const project = metadata?.project_slug || 'unknown';
+  const traceShort = metadata?.trace_id ? ` [${String(metadata.trace_id).slice(-6)}]` : '';
+  const mode = metadata?.mode || 'unknown';
+  const project = metadata?.project_slug;
   const source = metadata?.source || 'unknown';
 
+  // Format: "mode (project)" or just "mode" if no project
+  const contextLabel = project ? `${mode} (${project})` : mode;
+
   switch (eventType) {
+    // Transcript events - include mode/project and trace
     case 'pc_transcript_sent':
-      return `Transcript sent → 9500 (${project})${traceLabel}`;
     case 'terminal_transcript_sent':
-      return `Transcript sent → 9500 (${project})${traceLabel}`;
+      return `Transcript sent → 9500: ${contextLabel}${traceShort}`;
     case 'transcript_received':
-      return `Transcript received from ${source} (${project})${traceLabel}`;
+      return `Transcript received from ${source}: ${contextLabel}${traceShort}`;
+
+    // All heartbeats - consistent format with mode/project
+    case 'pc_heartbeat':
     case 'pc_sender_heartbeat':
-      return `PC heartbeat`;
+    case 'external_claude_heartbeat':
     case 'terminal_heartbeat':
-      return `Terminal heartbeat`;
     case 'router_heartbeat':
-      return `Router heartbeat`;
-    case 'context_flip':
-      return `Context flip → ${metadata?.mode || 'unknown'} (${project})`;
+    case 'dashboard_process_heartbeat':
     case 'context_heartbeat':
-      return `Heartbeat: ${metadata?.mode || 'unknown'} (${project})`;
+      return `Heartbeat: ${contextLabel}`;
+
+    // Context flips
+    case 'context_flip':
+      return `Context flip → ${contextLabel}`;
+
     default:
       return eventType;
   }
