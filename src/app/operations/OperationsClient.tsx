@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useContext } from 'react';
 import { PageTitleContext, PageActionsContext } from '@/app/layout';
-import { useSupportAutoFlip } from '@/app/hooks/useContextAutoFlip';
 import { STUDIO_SERVICES, StudioService, getAllServicesSorted } from './config';
 import { ServiceHealth, HealthResponse, PipelineStats, StatsResponse } from './lib/types';
 import ServiceCard from './components/ServiceCard';
@@ -11,8 +10,8 @@ import StudioStatsPanel from './components/StudioStatsPanel';
 import StudioLiveFeed from './components/StudioLiveFeed';
 
 export default function OperationsClient() {
-  // Auto-flip to SUPPORT mode - operations is support/ops work
-  useSupportAutoFlip();
+  // NOTE: No auto-flip - Operations is for viewing, doesn't dictate context
+  // User's current project/mode context is preserved while viewing ops
 
   const [services] = useState<StudioService[]>(STUDIO_SERVICES);
   const [healthData, setHealthData] = useState<Record<string, ServiceHealth>>({});

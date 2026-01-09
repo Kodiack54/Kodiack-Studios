@@ -24,13 +24,13 @@ export type EventType = 'flip' | 'heartbeat';
 
 // Constants for Context Contract v1.0
 // Routes that force mode (others inherit based on whether project is selected)
-const SUPPORT_ROUTES = ['/servers', '/dev-controls', '/helpdesk', '/admin', '/security', '/operations'];
+const SUPPORT_ROUTES = ['/servers', '/dev-controls', '/helpdesk', '/admin', '/security'];
 const FORGE_ROUTES = ['/the-forge', '/forge'];
 const PLANNING_ROUTES = ['/roadmap', '/planning'];
 // Routes that inherit mode (project if stickyProject set, else support)
-const INHERIT_ROUTES = ['/session-logs', '/ai-team', '/terminal', '/calendar', '/dashboard', '/studio', '/project-management', '/team', '/settings', '/credentials'];
+const INHERIT_ROUTES = ['/session-logs', '/ai-team', '/terminal', '/calendar', '/dashboard', '/studio', '/project-management', '/team', '/settings', '/credentials', '/operations'];
 // System routes force effectiveProject to Studios Platform
-const SYSTEM_ROUTES = ['/servers', '/dev-controls', '/helpdesk', '/admin', '/security', '/operations'];
+const SYSTEM_ROUTES = ['/servers', '/dev-controls', '/helpdesk', '/admin', '/security'];
 const STUDIOS_PLATFORM_ID = '21bdd846-7b03-4879-b5ea-04263594da1e'; // Studios Platform UUID from dev_projects
 const STUDIOS_PLATFORM_SLUG = 'studios';
 const STUDIOS_PLATFORM_NAME = 'Studios Platform';
