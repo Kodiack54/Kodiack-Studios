@@ -78,14 +78,17 @@ export default function StudioLiveFeed({
       if (data.success && data.events.length > 0) {
         setEvents(prev => {
           // Merge new events, avoiding duplicates
+          // API returns DESC (newest first), so reverse to get chronological order
           const existingIds = new Set(prev.map(e => e.id));
-          const newEvents = data.events.filter((e: FeedEvent) => !existingIds.has(e.id));
+          const newEvents = data.events
+            .filter((e: FeedEvent) => !existingIds.has(e.id))
+            .reverse(); // Reverse so oldest first, newest at end
           const merged = [...prev, ...newEvents];
           // Keep only last 200 events
           return merged.slice(-200);
         });
 
-        // Update last fetch time to most recent event
+        // Update last fetch time to most recent event (first in DESC order)
         if (data.events.length > 0) {
           lastFetchRef.current = data.events[0].timestamp;
         }

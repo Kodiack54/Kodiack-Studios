@@ -36,6 +36,12 @@ const PASSIVE_ROUTES = ['/operations'];
 const STUDIOS_PLATFORM_ID = '21bdd846-7b03-4879-b5ea-04263594da1e'; // Studios Platform UUID from dev_projects
 const STUDIOS_PLATFORM_SLUG = 'studios';
 const STUDIOS_PLATFORM_NAME = 'Studios Platform';
+
+// The Forge - brainstorming/think tank mode (NOT Elemental Forge game project)
+const THE_FORGE_ID = 'the-forge-0000-0000-0000-000000000000';
+const THE_FORGE_SLUG = 'the-forge';
+const THE_FORGE_NAME = 'The Forge';
+
 const HEARTBEAT_INTERVAL = 120_000; // 2 minutes
 
 // Diagnostic constants - instantly identify host/build/cookie issues
@@ -140,8 +146,15 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // Context Contract v1.0: Sticky project (only changes via dropdown)
   const [stickyProject, setStickyProjectState] = useState<StickyProject | null>(null);
 
-  // Save project before entering Forge (to restore on leave)
-  const [savedProjectBeforeForge, setSavedProjectBeforeForge] = useState<StickyProject | null>(null);
+  // Track pathname for restore-on-exit detection
+  const prevPathnameRef = useRef<string | null>(null);
+
+  // Save work context before entering Forge/Planning (to restore on leave)
+  // Using refs instead of state to avoid effect re-trigger loops
+  const savedWorkContextRef = useRef<{ mode: ContextMode; project: StickyProject | null } | null>(null);
+
+  // Guard to prevent immediate override after restore
+  const justRestoredRef = useRef<number>(0);
 
   // Track last context write for heartbeat
   const lastWriteRef = useRef<{ time: number; projectId: string | null; mode: ContextMode }>({
@@ -211,10 +224,15 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // Get current route for mode resolution
   const pathname = usePathname();
 
-  // Track last active mode for passive routes (preserves context when viewing operations, etc.)
-  const lastActiveModeRef = useRef<{ mode: ContextMode; project: StickyProject | null }>({
+  // Work context ref - ONLY stores support/project modes, NEVER forge/planning
+  // Used by passive routes to restore "work context" without snapping to forced modes
+  const workContextRef = useRef<{ mode: ContextMode; project: StickyProject | null }>({
     mode: 'support',
-    project: null,
+    project: {
+      id: STUDIOS_PLATFORM_ID,
+      slug: STUDIOS_PLATFORM_SLUG,
+      name: STUDIOS_PLATFORM_NAME,
+    },
   });
 
   // Context Contract v1.0: Resolve mode from current route
@@ -231,7 +249,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
     // Passive routes: project selection forces project mode, otherwise preserve last
     if (PASSIVE_ROUTES.some(r => pathname.startsWith(r))) {
-      return stickyProject ? 'project' : lastActiveModeRef.current.mode;
+      return stickyProject ? 'project' : workContextRef.current.mode;
     }
 
     // Support routes force support mode
@@ -248,14 +266,29 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   // Context Contract v1.0: Compute effective project
-  // System tabs force Studios Platform, otherwise use sticky project
-  // PASSIVE routes: use dropdown selection if set, otherwise preserve last active
+  // - Forge routes → The Forge (always)
+  // - Planning routes → stickyProject (the project being planned)
+  // - Passive routes → dropdown or last active
+  // - System routes → Studios Platform
+  // - Otherwise → stickyProject
   const effectiveProject = useMemo((): StickyProject | null => {
-    if (pathname && PASSIVE_ROUTES.some(r => pathname.startsWith(r))) {
-      // If user explicitly selected a project (dropdown), use it.
-      // Otherwise preserve what was active before navigating here.
-      return stickyProject || lastActiveModeRef.current.project;
+    // Forge always uses The Forge project
+    if (isForgeRoute) {
+      return {
+        id: THE_FORGE_ID,
+        slug: THE_FORGE_SLUG,
+        name: THE_FORGE_NAME,
+      };
     }
+    // Planning uses the project being planned (stickyProject)
+    if (isPlanningRoute) {
+      return stickyProject;
+    }
+    // Passive routes: dropdown selection or preserve last active
+    if (pathname && PASSIVE_ROUTES.some(r => pathname.startsWith(r))) {
+      return stickyProject || workContextRef.current.project;
+    }
+    // System routes force Studios Platform
     if (isSystemTab) {
       return {
         id: STUDIOS_PLATFORM_ID,
@@ -264,22 +297,22 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       };
     }
     return stickyProject;
-  }, [isSystemTab, stickyProject, pathname]);
+  }, [isSystemTab, stickyProject, pathname, isForgeRoute, isPlanningRoute]);
 
-  // Update lastActiveModeRef when on non-passive routes (so passive routes can preserve it)
-  // Don't save forced modes (planning/forge) - they shouldn't become sticky
+  // Update workContextRef ONLY when mode is support/project (work modes)
+  // This ensures passive routes can never restore to forge/planning
   useEffect(() => {
     if (!pathname) return;
     const isPassive = PASSIVE_ROUTES.some(r => pathname.startsWith(r));
     if (isPassive) return;
 
-    // Don't let forced modes become the "last active" mode
-    if (resolvedMode === 'planning' || resolvedMode === 'forge') return;
-
-    lastActiveModeRef.current = {
-      mode: resolvedMode,
-      project: effectiveProject,
-    };
+    // Only save work modes (support/project) - never forge/planning
+    if (resolvedMode === 'support' || resolvedMode === 'project') {
+      workContextRef.current = {
+        mode: resolvedMode,
+        project: effectiveProject,
+      };
+    }
   }, [pathname, resolvedMode, effectiveProject]);
 
   // Track previous work mode (PROJECT or SUPPORT) when switching to Forge/Planning
@@ -294,35 +327,105 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     }
   }, [context]);
 
-  // Forge behavior: clear project on enter, restore on leave
-  const prevResolvedModeRef = useRef<ContextMode | null>(null);
+  // Forge/Planning enter/exit: Save work context on enter, restore + emit flip on exit
+  // Uses pathname-based detection for reliable route transitions
+  // Only depends on pathname and userId to avoid re-trigger loops
   useEffect(() => {
-    const prevMode = prevResolvedModeRef.current;
-    const currentMode = resolvedMode;
+    if (!pathname || !userId) return;
 
-    // Entering Forge from non-Forge
-    if (currentMode === 'forge' && prevMode !== 'forge' && prevMode !== null) {
-      // Save current sticky project before clearing
-      if (stickyProject) {
-        setSavedProjectBeforeForge(stickyProject);
-      }
-      // Clear sticky project so header shows "Select Project"
-      setStickyProjectState(null);
-      console.log('[UserContext] Entering Forge - saved project:', stickyProject?.name);
+    const prevPath = prevPathnameRef.current;
+    const wasForge = prevPath && FORGE_ROUTES.some(r => prevPath.startsWith(r));
+    const wasPlanning = prevPath && PLANNING_ROUTES.some(r => prevPath.startsWith(r));
+    const wasForced = wasForge || wasPlanning;
+
+    const isForge = FORGE_ROUTES.some(r => pathname.startsWith(r));
+    const isPlanning = PLANNING_ROUTES.some(r => pathname.startsWith(r));
+    const isForced = isForge || isPlanning;
+
+    // DEBUG: Log every pathname transition
+    console.log('[UserContext] Restore effect - pathname transition:', {
+      prevPath,
+      pathname,
+      wasForced,
+      isForced,
+      savedContext: savedWorkContextRef.current,
+    });
+
+    // ENTERING Forge/Planning from non-forced route
+    if (isForced && !wasForced && prevPath !== null) {
+      // Save current work context before entering forced mode
+      // Read stickyProject from current state at this moment
+      const currentProject = stickyProject;
+      const currentMode = currentProject ? 'project' : 'support';
+
+      savedWorkContextRef.current = {
+        mode: currentMode,
+        project: currentProject,
+      };
+
+      console.log('[UserContext] ENTERING forced mode - saved:', {
+        mode: currentMode,
+        project: currentProject?.slug,
+        entering: isForge ? 'forge' : 'planning',
+      });
     }
 
-    // Leaving Forge to non-Forge
-    if (currentMode !== 'forge' && prevMode === 'forge') {
-      // Restore saved project
-      if (savedProjectBeforeForge) {
-        setStickyProjectState(savedProjectBeforeForge);
-        console.log('[UserContext] Leaving Forge - restored project:', savedProjectBeforeForge.name);
-        setSavedProjectBeforeForge(null);
+    // LEAVING Forge/Planning to non-forced route
+    if (wasForced && !isForced) {
+      const saved = savedWorkContextRef.current;
+      const restoreMode = saved?.mode || 'support';
+      const restoreProject = saved?.project || null;
+
+      console.log('[UserContext] LEAVING forced mode - restoring:', {
+        mode: restoreMode,
+        project: restoreProject?.slug,
+        exited: wasForge ? 'forge' : 'planning',
+      });
+
+      // Set guard to prevent immediate override
+      justRestoredRef.current = Date.now();
+
+      // Update lastWriteRef SYNCHRONOUSLY before async setContext
+      lastWriteRef.current = {
+        time: Date.now(),
+        projectId: restoreProject?.id || null,
+        mode: restoreMode,
+      };
+
+      // Update heartbeatDataRef to ensure heartbeat uses correct values immediately
+      heartbeatDataRef.current = {
+        ...heartbeatDataRef.current,
+        effectiveProject: restoreProject,
+        resolvedMode: restoreMode,
+        stickyProject: restoreProject,
+      };
+
+      // Restore sticky project state
+      if (restoreProject) {
+        setStickyProjectState(restoreProject);
       }
+
+      // Emit explicit context_flip for restore
+      setContext({
+        mode: restoreMode,
+        project_id: restoreProject?.id || null,
+        project_slug: restoreProject?.slug || null,
+        project_name: restoreProject?.name || null,
+        source: 'autoflip',
+        event_type: 'flip',
+        meta: {
+          route: pathname,
+          restored_from: wasForge ? 'forge' : 'planning',
+          restore_flip: true,
+        },
+      });
+
+      // Clear saved context
+      savedWorkContextRef.current = null;
     }
 
-    prevResolvedModeRef.current = currentMode;
-  }, [resolvedMode, stickyProject, savedProjectBeforeForge]);
+    prevPathnameRef.current = pathname;
+  }, [pathname, userId, stickyProject, setContext]);
 
   const setUserIdentity = useCallback((newUserId: string, newPcTag: string) => {
     setUserId(newUserId);
@@ -494,6 +597,14 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // Passive routes (like /operations) only block MODE changes, NOT project changes from dropdown
   useEffect(() => {
     if (!userId) return;
+
+    // Guard: Skip if we just restored from forge/planning (restore effect handles the flip)
+    // This prevents the async timing issue where auto-flip runs before restore's setContext completes
+    const timeSinceRestore = Date.now() - justRestoredRef.current;
+    if (timeSinceRestore < 500) {
+      console.log('[UserContext] Skipping auto-flip - just restored from forced mode', { timeSinceRestore });
+      return;
+    }
 
     const currentProjectId = effectiveProject?.id || null;
     const modeChanged = resolvedMode !== lastWriteRef.current.mode;
