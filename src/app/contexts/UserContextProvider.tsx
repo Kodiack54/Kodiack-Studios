@@ -218,25 +218,28 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   });
 
   // Context Contract v1.0: Resolve mode from current route
-  // Some routes force mode, others inherit (project if stickyProject set, else support)
-  // PASSIVE routes preserve whatever mode was active before navigating there
+  // Precedence: 1) Forced routes win, 2) Project selected → project mode, 3) Support
+  const isForgeRoute = pathname && FORGE_ROUTES.some(r => pathname.startsWith(r));
+  const isPlanningRoute = pathname && PLANNING_ROUTES.some(r => pathname.startsWith(r));
+
   const resolvedMode = useMemo((): ContextMode => {
     if (!pathname) return stickyProject ? 'project' : 'support';
 
-    // Passive routes preserve the last active mode (don't compute new mode)
+    // Forced routes always win
+    if (isPlanningRoute) return 'planning';
+    if (isForgeRoute) return 'forge';
+
+    // Passive routes: project selection forces project mode, otherwise preserve last
     if (PASSIVE_ROUTES.some(r => pathname.startsWith(r))) {
-      return lastActiveModeRef.current.mode;
+      return stickyProject ? 'project' : lastActiveModeRef.current.mode;
     }
 
-    // Routes that force a specific mode
-    if (PLANNING_ROUTES.some(r => pathname.startsWith(r))) return 'planning';
-    if (FORGE_ROUTES.some(r => pathname.startsWith(r))) return 'forge';
+    // Support routes force support mode
     if (SUPPORT_ROUTES.some(r => pathname.startsWith(r))) return 'support';
 
-    // Inheriting routes: project if stickyProject set, else support
-    // This includes session-logs, ai-team, terminal, calendar, dashboard, studio, etc.
+    // Normal routes: project selected → project mode, otherwise support
     return stickyProject ? 'project' : 'support';
-  }, [pathname, stickyProject]);
+  }, [pathname, stickyProject, isPlanningRoute, isForgeRoute]);
 
   // Context Contract v1.0: Detect if on system tab (forces Studios Platform)
   const isSystemTab = useMemo(() => {
@@ -264,15 +267,19 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   }, [isSystemTab, stickyProject, pathname]);
 
   // Update lastActiveModeRef when on non-passive routes (so passive routes can preserve it)
+  // Don't save forced modes (planning/forge) - they shouldn't become sticky
   useEffect(() => {
     if (!pathname) return;
     const isPassive = PASSIVE_ROUTES.some(r => pathname.startsWith(r));
-    if (!isPassive) {
-      lastActiveModeRef.current = {
-        mode: resolvedMode,
-        project: effectiveProject,
-      };
-    }
+    if (isPassive) return;
+
+    // Don't let forced modes become the "last active" mode
+    if (resolvedMode === 'planning' || resolvedMode === 'forge') return;
+
+    lastActiveModeRef.current = {
+      mode: resolvedMode,
+      project: effectiveProject,
+    };
   }, [pathname, resolvedMode, effectiveProject]);
 
   // Track previous work mode (PROJECT or SUPPORT) when switching to Forge/Planning
