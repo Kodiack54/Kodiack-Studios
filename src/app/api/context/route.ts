@@ -231,6 +231,8 @@ export async function POST(request: NextRequest) {
           project_id: project_id || null,
           project_slug: project_slug || null,
           project_name: project_name || null,
+          pc_tag: pc_tag,  // Include for ops-9200 context resolution
+          user_id: user_id,
         }),
       ]
     );
