@@ -246,11 +246,12 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
 
   // Context Contract v1.0: Compute effective project
   // System tabs force Studios Platform, otherwise use sticky project
-  // PASSIVE routes preserve the project from before navigation
+  // PASSIVE routes: use dropdown selection if set, otherwise preserve last active
   const effectiveProject = useMemo((): StickyProject | null => {
-    // Passive routes preserve the last active project
     if (pathname && PASSIVE_ROUTES.some(r => pathname.startsWith(r))) {
-      return lastActiveModeRef.current.project;
+      // If user explicitly selected a project (dropdown), use it.
+      // Otherwise preserve what was active before navigating here.
+      return stickyProject || lastActiveModeRef.current.project;
     }
     if (isSystemTab) {
       return {
