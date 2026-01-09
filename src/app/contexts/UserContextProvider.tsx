@@ -483,27 +483,31 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Context Contract v1.0: Write context immediately on flip (effectiveProject or resolvedMode change)
-  // EXCEPT on passive routes (like /operations) which preserve existing context
+  // Passive routes (like /operations) only block MODE changes, NOT project changes from dropdown
   useEffect(() => {
     if (!userId) return;
 
-    // Skip context flips on passive routes - these are view-only pages
+    const currentProjectId = effectiveProject?.id || null;
+    const modeChanged = resolvedMode !== lastWriteRef.current.mode;
+    const projectChanged = currentProjectId !== lastWriteRef.current.projectId;
+    const hasChanged = modeChanged || projectChanged;
+
+    // Passive routes only block mode-only flips - project changes from dropdown always go through
     const isPassiveRoute = pathname && PASSIVE_ROUTES.some(route => pathname.startsWith(route));
-    if (isPassiveRoute) {
-      console.log('[UserContext] Passive route, skipping context flip:', pathname);
+    if (isPassiveRoute && modeChanged && !projectChanged) {
+      console.log('[UserContext] Passive route blocking mode-only flip:', pathname, resolvedMode);
       return;
     }
-
-    const currentProjectId = effectiveProject?.id || null;
-    const hasChanged =
-      currentProjectId !== lastWriteRef.current.projectId ||
-      resolvedMode !== lastWriteRef.current.mode;
 
     if (hasChanged) {
       console.log('[UserContext] Context flip:', {
         projectId: currentProjectId,
+        projectSlug: effectiveProject?.slug,
         mode: resolvedMode,
+        modeChanged,
+        projectChanged,
         isSystemTab,
+        isPassiveRoute,
       });
 
       setContext({
@@ -517,6 +521,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
           route: pathname,
           isSystemTab,
           stickyProjectId: stickyProject?.id || null,
+          modeChanged,
+          projectChanged,
         },
       });
     }
