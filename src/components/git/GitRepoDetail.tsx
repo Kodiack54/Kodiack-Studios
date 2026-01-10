@@ -87,6 +87,9 @@ export default function GitRepoDetail({ repoName, isModal = false, onClose }: Gi
   const [repoConfig, setRepoConfig] = useState<RepoConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stateHash, setStateHash] = useState<string | null>(null);
+  const [pcLastSeen, setPcLastSeen] = useState<string | null>(null);
+  const [serverLastSeen, setServerLastSeen] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
 
   
@@ -136,9 +139,36 @@ export default function GitRepoDetail({ repoName, isModal = false, onClose }: Gi
     }
   };
 
+  // Poll hash endpoint - lightweight check for changes
+  const checkHash = async () => {
+    try {
+      const res = await fetch(`/git-database/api/repo-hash?repo=${encodeURIComponent(repoName)}`);
+      const data = await res.json();
+      if (data.success) {
+        setPcLastSeen(data.pc_last_seen);
+        setServerLastSeen(data.server_last_seen);
+        // Return true if hash changed (need to refetch)
+        if (data.state_hash !== stateHash) {
+          setStateHash(data.state_hash);
+          return true;
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchData = async (force = false) => {
+      // Only show loading on initial fetch
+      if (!repoDetails) setLoading(true);
+      
+      // If not forcing and we have data, check hash first
+      if (!force && repoDetails && stateHash) {
+        const changed = await checkHash();
+        if (!changed) return; // No change, skip full fetch
+      }
       try {
         const [historyRes, driftRes] = await Promise.all([
           fetch(`/git-database/api/history?repo=${encodeURIComponent(repoName)}&limit=200`),
@@ -218,7 +248,13 @@ export default function GitRepoDetail({ repoName, isModal = false, onClose }: Gi
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    // Poll hash every 15s, only full fetch on change
+    const interval = setInterval(async () => {
+      const changed = await checkHash();
+      if (changed) {
+        fetchData(true);
+      }
+    }, 15000);
     return () => clearInterval(interval);
   }, [repoName]);
 
@@ -385,6 +421,11 @@ export default function GitRepoDetail({ repoName, isModal = false, onClose }: Gi
                   </div>
                 )}
               </div>
+            ) : pcLastSeen ? (
+              <div className="text-yellow-500">
+                <div>LOCAL stale</div>
+                <div className="text-xs text-gray-500 mt-1">Last seen: {formatTime(pcLastSeen)}</div>
+              </div>
             ) : (
               <div className="text-gray-500">Not cloned locally</div>
             )}
@@ -435,6 +476,11 @@ export default function GitRepoDetail({ repoName, isModal = false, onClose }: Gi
                     <div className="text-gray-300 text-xs mt-1 truncate">{repoDetails.server.last_commit_msg}</div>
                   </div>
                 )}
+              </div>
+            ) : serverLastSeen ? (
+              <div className="text-yellow-500">
+                <div>SERVER stale</div>
+                <div className="text-xs text-gray-500 mt-1">Last seen: {formatTime(serverLastSeen)}</div>
               </div>
             ) : (
               <div className="text-gray-500">Not deployed on server</div>
