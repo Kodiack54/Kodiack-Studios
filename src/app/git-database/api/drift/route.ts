@@ -10,8 +10,11 @@ const pool = new Pool({
   max: 5
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const includeIgnored = url.searchParams.get('include_ignored') === 'true';
+
     // Get canonical state for repos and nodes
     const stateResult = await pool.query(`
       SELECT 
@@ -39,6 +42,7 @@ export async function GET() {
         github_url,
         is_active,
         is_ai_team,
+        is_ignored,
         notes,
         droplet_name,
         pm2_name,
@@ -99,6 +103,9 @@ export async function GET() {
           // Get saved config if exists
           const config = configMap.get(repoSlug);
           
+          // Skip ignored repos unless include_ignored=true
+          if (config?.is_ignored && !includeIgnored) continue;
+          
           // Merge: config overrides discovered values
           // Include BOTH server_path and pc_path for every repo
           node.repos.push({
@@ -121,6 +128,7 @@ export async function GET() {
             pc_path: config?.pc_path || null,
             github_url: config?.github_url || state.github_url || null,
             is_ai_team: config?.is_ai_team || false,
+            is_ignored: config?.is_ignored || false,
             pm2_name: config?.pm2_name || null,
             droplet_name: config?.droplet_name || null,
             notes: config?.notes || null,
@@ -137,10 +145,11 @@ export async function GET() {
       const pcEvent = pcEventsResult.rows[0];
       const meta = pcEvent.metadata || {};
       if (meta.repos) {
-        pcState = {
-          node_id: 'user-pc',
-          repos: meta.repos.map((r: any) => {
+        const filteredPcRepos = meta.repos
+          .map((r: any) => {
             const config = configMap.get(r.repo);
+            // Skip ignored repos unless include_ignored=true
+            if (config?.is_ignored && !includeIgnored) return null;
             return {
               repo: r.repo,
               branch: r.branch,
@@ -157,12 +166,18 @@ export async function GET() {
               pc_path: config?.pc_path || r.path || null,
               github_url: config?.github_url || null,
               is_ai_team: config?.is_ai_team || false,
+              is_ignored: config?.is_ignored || false,
               pm2_name: config?.pm2_name || null,
               droplet_name: config?.droplet_name || null,
               client_id: config?.client_id || null,
               project_id: config?.project_id || null,
             };
-          }),
+          })
+          .filter(Boolean);
+
+        pcState = {
+          node_id: 'user-pc',
+          repos: filteredPcRepos,
         };
       }
     }

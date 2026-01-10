@@ -16,6 +16,7 @@ interface RepoConfig {
   github_url?: string;
   is_active: boolean;
   is_ai_team: boolean;
+  is_ignored?: boolean;
   auto_discovered: boolean;
   notes?: string;
   droplet_name?: string;
@@ -120,15 +121,19 @@ export default function RepoDetailPage() {
           console.error("Failed to fetch GitHub URLs:", e);
         }
         
-        try {
-          const pcRes = await fetch("/git-database/api/pc-paths");
-          const pcData = await pcRes.json();
-          if (pcData.success && Array.isArray(pcData.paths)) {
-            setPcPaths(pcData.paths);
+        // Extract pc_paths from drift data (faster than separate API call)
+        const extractedPcPaths: string[] = [];
+        for (const node of driftData.nodes || []) {
+          for (const repo of node.repos || []) {
+            if (repo.pc_path) extractedPcPaths.push(repo.pc_path);
           }
-        } catch (e) {
-          console.error("Failed to fetch PC paths:", e);
         }
+        if (driftData.pc?.repos) {
+          for (const repo of driftData.pc.repos) {
+            if (repo.pc_path) extractedPcPaths.push(repo.pc_path);
+          }
+        }
+        setPcPaths([...new Set(extractedPcPaths)].sort());
 
         setDbTargets([
           { id: 'supabase-nextbid-live', name: 'NextBid Live', type: 'supabase' },
@@ -485,6 +490,15 @@ export default function RepoDetailPage() {
                 className="rounded bg-gray-700 border-gray-600"
               />
               Active
+            </label>
+            <label className="flex items-center gap-2 text-sm text-orange-400">
+              <input
+                type="checkbox"
+                checked={editForm.is_ignored || false}
+                onChange={(e) => setEditForm({ ...editForm, is_ignored: e.target.checked })}
+                className="rounded bg-gray-700 border-gray-600"
+              />
+              Ignored (hide from board)
             </label>
           </div>
 

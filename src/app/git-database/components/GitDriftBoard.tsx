@@ -100,12 +100,13 @@ export default function GitDriftBoard({ onRepoSelect, viewFilter = 'all', drople
   const [registry, setRegistry] = useState<Map<string, RegistryEntry>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showIgnored, setShowIgnored] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [driftRes, registryRes] = await Promise.all([
-          fetch('/git-database/api/drift', { cache: 'no-store' }),
+          fetch(`/git-database/api/drift?include_ignored=${showIgnored}`, { cache: 'no-store' }),
           fetch('/git-database/api/registry', { cache: 'no-store' }),
         ]);
         
@@ -140,7 +141,7 @@ export default function GitDriftBoard({ onRepoSelect, viewFilter = 'all', drople
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [showIgnored]);
 
   const getDisplayName = (repoName: string): string => {
     const direct = registry.get(repoName);
@@ -438,6 +439,12 @@ export default function GitDriftBoard({ onRepoSelect, viewFilter = 'all', drople
             {viewFilter === 'ai_team' ? 'AI Team' : 'Studio'}
           </span>
         )}
+        <button
+          onClick={() => setShowIgnored(!showIgnored)}
+          className={`px-2 py-0.5 rounded text-xs ${showIgnored ? "bg-orange-600/30 text-orange-300" : "bg-gray-700/50 text-gray-500 hover:text-gray-300"}`}
+        >
+          {showIgnored ? "Showing Ignored" : "Show Ignored"}
+        </button>
         <span className="text-gray-500">
           {families.length} families, {singles.length} repos ({totalRepos} total)
         </span>

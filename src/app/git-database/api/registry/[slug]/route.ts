@@ -57,7 +57,7 @@ export async function PUT(
   try {
     const body = await request.json();
     const { 
-      display_name, server_path, pc_path, github_url, is_active, is_ai_team, notes,
+      display_name, server_path, pc_path, github_url, is_active, is_ai_team, is_ignored, notes,
       droplet_name, pm2_name, client_id, project_id,
       db_type, db_target_id, db_name, db_schema
     } = body;
@@ -70,19 +70,20 @@ export async function PUT(
         github_url = $5,
         is_active = COALESCE($6, is_active),
         is_ai_team = COALESCE($7, is_ai_team),
-        notes = $8,
-        droplet_name = $9,
-        pm2_name = $10,
-        client_id = $11,
-        project_id = $12,
-        db_type = $13,
-        db_target_id = $14,
-        db_name = $15,
-        db_schema = COALESCE($16, 'public'),
+        is_ignored = COALESCE($8, is_ignored),
+        notes = $9,
+        droplet_name = $10,
+        pm2_name = $11,
+        client_id = $12,
+        project_id = $13,
+        db_type = $14,
+        db_target_id = $15,
+        db_name = $16,
+        db_schema = COALESCE($17, 'public'),
         updated_at = NOW()
       WHERE repo_slug = $1
       RETURNING *
-    `, [slug, display_name, server_path, pc_path, github_url, is_active, is_ai_team, notes,
+    `, [slug, display_name, server_path, pc_path, github_url, is_active, is_ai_team, is_ignored, notes,
         droplet_name, pm2_name, client_id || null, project_id || null,
         db_type || null, db_target_id || null, db_name || null, db_schema]);
     
