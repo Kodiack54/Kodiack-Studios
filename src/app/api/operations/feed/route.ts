@@ -27,7 +27,7 @@ interface FeedEvent {
 function getEventMessage(eventType: string, metadata: Record<string, unknown>): string {
   const traceShort = metadata?.trace_id ? ` [${String(metadata.trace_id).slice(-6)}]` : '';
   const mode = metadata?.mode || 'unknown';
-  const project = metadata?.project_slug;
+  const project = metadata?.project_name || metadata?.project_slug || metadata?.project_id || null;
   const source = metadata?.source || 'unknown';
 
   // Format: "mode (project)" or just "mode" if no project

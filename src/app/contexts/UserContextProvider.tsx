@@ -38,7 +38,7 @@ const STUDIOS_PLATFORM_SLUG = 'studios';
 const STUDIOS_PLATFORM_NAME = 'Studios Platform';
 
 // The Forge - brainstorming/think tank mode (NOT Elemental Forge game project)
-const THE_FORGE_ID = 'the-forge-0000-0000-0000-000000000000';
+const THE_FORGE_ID = '00000000-0000-0000-0000-000000f09e01';
 const THE_FORGE_SLUG = 'the-forge';
 const THE_FORGE_NAME = 'The Forge';
 
@@ -227,7 +227,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // Work context ref - ONLY stores support/project modes, NEVER forge/planning
   // Used by passive routes to restore "work context" without snapping to forced modes
   const workContextRef = useRef<{ mode: ContextMode; project: StickyProject | null }>({
-    mode: 'support',
+    mode: 'project',
     project: {
       id: STUDIOS_PLATFORM_ID,
       slug: STUDIOS_PLATFORM_SLUG,
@@ -241,7 +241,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const isPlanningRoute = pathname && PLANNING_ROUTES.some(r => pathname.startsWith(r));
 
   const resolvedMode = useMemo((): ContextMode => {
-    if (!pathname) return stickyProject ? 'project' : 'support';
+    if (!pathname) return 'project';
 
     // Forced routes always win
     if (isPlanningRoute) return 'planning';
@@ -256,7 +256,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     if (SUPPORT_ROUTES.some(r => pathname.startsWith(r))) return 'support';
 
     // Normal routes: project selected → project mode, otherwise support
-    return stickyProject ? 'project' : 'support';
+    return 'project';
   }, [pathname, stickyProject, isPlanningRoute, isForgeRoute]);
 
   // Context Contract v1.0: Detect if on system tab (forces Studios Platform)

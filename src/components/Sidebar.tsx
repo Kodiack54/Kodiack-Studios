@@ -292,6 +292,17 @@ export default function Sidebar() {
             <span>💻</span>
             <span>Terminal</span>
           </button>
+          <button
+            onClick={() => handleWorkTabClick('/git-database')}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              pathname?.startsWith('/git-database')
+                ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            }`}
+          >
+            <span>🧬</span>
+            <span>Git / Database</span>
+          </button>
         </div>
         )}
 

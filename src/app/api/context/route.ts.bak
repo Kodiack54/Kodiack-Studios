@@ -30,7 +30,7 @@ export interface UserContext {
   ended_at: string | null;
   source: ContextSource;
   locked: boolean;
-  event_type: 'flip' | 'heartbeat';
+  event_type: 'flip' | 'heartbeat' | 'boot';
   meta: Record<string, unknown> | null;
 }
 
@@ -44,7 +44,7 @@ interface ContextSetRequest {
   project_name?: string | null;
   dev_team?: string | null;
   source: ContextSource;
-  event_type?: 'flip' | 'heartbeat';  // Defaults to 'flip'
+  event_type?: 'flip' | 'heartbeat' | 'boot';  // Defaults to 'flip'
   meta?: Record<string, unknown>;      // Arbitrary metadata (forge_scope, route, etc.)
 }
 
@@ -134,56 +134,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Context Contract v1.0: Project is sticky, mode is fluid
-    // - project_id can be set for ANY mode (planning/support/forge all track effective project)
-    // - project mode requires project_id (can't be "project mode" without a project)
-    // - support/planning/forge can have project_id (sticky project or Studios Platform)
-    if (mode === 'project' && !project_id) {
-      return NextResponse.json(
-        { success: false, error: 'project_id required when mode=project' },
-        { status: 400 }
-      );
-    }
+    // SAFETY NET: Default to Studios Platform if no project provided
+    // effectiveProjectId can NEVER be null - "unknown" is not allowed
+    const STUDIOS_PLATFORM_ID = '21bdd846-7b03-4879-b5ea-04263594da1e';
+    const STUDIOS_PLATFORM_SLUG = 'studios';
+    const STUDIOS_PLATFORM_NAME = 'Studios Platform';
+    
+    const effectiveProjectId = project_id || STUDIOS_PLATFORM_ID;
+    const effectiveProjectSlug = project_slug || STUDIOS_PLATFORM_SLUG;
+    const effectiveProjectName = project_name || STUDIOS_PLATFORM_NAME;
     // Note: non-project modes CAN have project_id (effective project stays)
 
     // Heartbeats are append-only - don't modify previous contexts
-    // Flips use debounce logic to clean up short contexts
+    // For flips: end any active context (no debounce - Chad filters if needed)
     if (event_type === 'flip') {
-      // DEBOUNCE: Minimum 2-minute duration for context flips
-      // If previous context was < 2 min, DELETE it (noise reduction)
-      const MIN_DURATION_MS = 2 * 60 * 1000; // 2 minutes
-
-      // 1. Get current active context to check its duration
-      const currentResult = await db.query<UserContext>(
-        `SELECT * FROM dev_user_context
-         WHERE user_id = $1 AND pc_tag = $2 AND ended_at IS NULL
-         ORDER BY started_at DESC LIMIT 1`,
+      await db.query(
+        `UPDATE dev_user_context
+         SET ended_at = NOW(), updated_at = NOW()
+         WHERE user_id = $1 AND pc_tag = $2 AND ended_at IS NULL`,
         [user_id, pc_tag]
       );
-
-      const currentRows = Array.isArray(currentResult.data) ? currentResult.data : [];
-      const currentContext = currentRows[0];
-
-      if (currentContext) {
-        const duration = Date.now() - new Date(currentContext.started_at).getTime();
-
-        if (duration < MIN_DURATION_MS) {
-          // Context was too short - DELETE it (it's noise)
-          await db.query(
-            `DELETE FROM dev_user_context WHERE id = $1`,
-            [currentContext.id]
-          );
-          console.log(`[Context API] Deleted short context (${Math.round(duration/1000)}s): ${currentContext.mode}`);
-        } else {
-          // Context was long enough - end it normally
-          await db.query(
-            `UPDATE dev_user_context
-             SET ended_at = NOW(), updated_at = NOW()
-             WHERE id = $1`,
-            [currentContext.id]
-          );
-        }
-      }
     }
     // For heartbeats: Just append, Chad uses latest event <= session_time
 
@@ -198,9 +168,9 @@ export async function POST(request: NextRequest) {
         pc_tag,
         pc_tag_raw || 'dashboard',  // Default to 'dashboard' if not specified
         mode,
-        project_id || null,        // Context Contract: project is sticky for ALL modes
-        project_slug || null,      // planning/support/forge all track effective project
-        project_name || null,
+        effectiveProjectId,        // Always set - defaults to Studios Platform
+        effectiveProjectSlug,      // Always set - defaults to studios
+        effectiveProjectName,
         dev_team || null,
         source,
         event_type,
@@ -224,16 +194,17 @@ export async function POST(request: NextRequest) {
        VALUES ($1, $2, $3, $4)`,
       [
         'dashboard-5500',
-        event_type === 'flip' ? 'context_flip' : 'context_heartbeat',
+        event_type === 'flip' ? 'context_flip' : event_type === 'boot' ? 'context_client_boot' : 'context_heartbeat',
         null,
         JSON.stringify({
           mode,
-          project_id: project_id || null,
-          project_slug: project_slug || null,
-          project_name: project_name || null,
-          pc_tag: pc_tag,  // Include for ops-9200 context resolution
-          user_id: user_id,
           route: meta?.route || null,
+          project_id: effectiveProjectId,
+          project_slug: effectiveProjectSlug,
+          project_name: effectiveProjectName,
+          pc_tag: pc_tag,
+          pc_tag_raw: pc_tag_raw || 'dashboard',
+          user_id: user_id,
         }),
       ]
     );

@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { ChevronDown, Check } from 'lucide-react';
 import { useUserContext } from '@/app/contexts/UserContextProvider';
 
@@ -35,6 +36,8 @@ export default function ContextIndicator() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const isForgeRoute = pathname?.startsWith('/the-forge') || pathname?.startsWith('/forge');
 
   // Fetch projects on mount
   useEffect(() => {
@@ -75,14 +78,10 @@ export default function ContextIndicator() {
     setIsOpen(false);
   };
 
-  const handleClearProject = () => {
-    setStickyProject(null);
-    setIsOpen(false);
-  };
 
   // Display name for current selection (show stickyProject, not effectiveProject)
   // On system tabs, effectiveProject is forced to Studios Platform, but we show stickyProject
-  const displayName = stickyProject?.name || 'Select Project';
+  const displayName = isForgeRoute ? 'The Forge' : (stickyProject?.name || 'Studios Platform');
 
   if (isLoading) {
     return (
@@ -128,20 +127,9 @@ export default function ContextIndicator() {
               <div className="px-3 py-4 text-center text-gray-400 text-sm">No projects found</div>
             ) : (
               <>
-                {/* Clear selection option */}
-                <button
-                  onClick={handleClearProject}
-                  className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-700 transition-colors ${
-                    !stickyProject ? 'bg-gray-700/50' : ''
-                  }`}
-                >
-                  <span className="text-gray-400">—</span>
-                  <span className="text-gray-300">No project</span>
-                  {!stickyProject && <Check className="w-4 h-4 text-blue-400 ml-auto" />}
-                </button>
 
                 {/* Projects */}
-                {projects.map((project) => (
+                {projects.filter(p => isForgeRoute ? p.slug === 'the-forge' : p.slug !== 'the-forge').map((project) => (
                   <button
                     key={project.id}
                     onClick={() => handleSelectProject(project)}

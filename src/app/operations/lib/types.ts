@@ -17,6 +17,7 @@ export interface ServiceHealth {
   lastEventTime?: number;
   error?: string;
   tailerWarning?: string;  // For user-pc: warning when heartbeat fresh but no transcripts
+  gitDriftStatus?: 'green' | 'orange' | 'red' | 'gray';  // Git drift status from canonizer
 }
 
 // All services health response

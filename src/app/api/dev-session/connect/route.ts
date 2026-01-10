@@ -92,22 +92,6 @@ export async function POST(request: NextRequest) {
 
     console.log(`[DevSession] User ${userId} connected to ${devSlot} on project ${projectSlug} (ports ${basePort}-${basePort + 7}, pc_tag: ${pcTag})`);
 
-    // Notify Chad about the active project for this session
-    // Chad will use this project_id when tagging captured sessions
-    try {
-      const chadPort = basePort + 1; // Chad is at basePort + 1
-      await fetch(`http://161.35.229.220:${chadPort}/api/set-project`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, projectSlug }),
-      }).catch(() => {
-        // Chad might not have this endpoint yet - that's ok
-        console.log(`[DevSession] Could not notify Chad at port ${chadPort} about project`);
-      });
-    } catch {
-      // Ignore Chad notification errors
-    }
-
     return NextResponse.json({
       success: true,
       sessionId,

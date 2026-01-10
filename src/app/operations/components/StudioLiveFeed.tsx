@@ -34,6 +34,30 @@ const eventTypeBadges: Record<string, string> = {
   pc_dump_sent: 'bg-green-500/20 text-green-400',
   terminal_dump_sent: 'bg-green-500/20 text-green-400',
   transcript_received: 'bg-yellow-500/20 text-yellow-400',
+  // AI Team events
+  chad_tick: 'bg-blue-500/20 text-blue-400',
+  chad_checkpoint: 'bg-green-500/20 text-green-400',
+  chad_excursion_suppressed: 'bg-yellow-500/20 text-yellow-400',
+  chad_error: 'bg-red-500/20 text-red-400',
+  // Future AI team members (susan, jen, etc.) will use same colors
+  susan_tick: 'bg-blue-500/20 text-blue-400',
+  susan_checkpoint: 'bg-green-500/20 text-green-400',
+  jen_tick: 'bg-blue-500/20 text-blue-400',
+  jen_checkpoint: 'bg-green-500/20 text-green-400',
+  // 94xx Drift Tracking family
+  pc_git_status: 'bg-green-500/20 text-green-400',
+  pc_git_commit: 'bg-green-500/20 text-green-400',
+  git_status: 'bg-green-500/20 text-green-400',
+  node_sensor_tick: 'bg-blue-500/20 text-blue-400',
+  node_sensor_error: 'bg-red-500/20 text-red-400',
+  git_origin_tick: 'bg-blue-500/20 text-blue-400',
+  git_origin_error: 'bg-red-500/20 text-red-400',
+  schema_status: 'bg-green-500/20 text-green-400',
+  schema_tracker_tick: 'bg-blue-500/20 text-blue-400',
+  schema_error: 'bg-red-500/20 text-red-400',
+  sync_check: 'bg-purple-500/20 text-purple-400',
+  sync_in_sync: 'bg-green-500/20 text-green-400',
+  sync_drift_detected: 'bg-orange-500/20 text-orange-400',
 };
 
 export default function StudioLiveFeed({
@@ -144,6 +168,32 @@ export default function StudioLiveFeed({
     return eventTypeBadges[eventType] || 'bg-gray-500/20 text-gray-400';
   };
 
+  // AI Ops description resolver
+  // AI Ops description resolver - reads from metadata, no hardcoding
+  // Priority: 1) message, 2) target, 3) fallback
+  const describeAIOpsEvent = (eventType: string, meta?: Record<string, unknown>): string | null => {
+    // Check for explicit message override first
+    const message = meta?.message as string | undefined;
+    if (message) return message;
+
+    if (eventType.endsWith('_tick')) {
+      const target = meta?.target as string | undefined;
+      if (!target) return 'Looking for items';
+      return `Looking for ${target.replace(/_/g, ' ')}`;
+    }
+    if (eventType.endsWith('_checkpoint')) {
+      return 'Timestamp saved — this is where I left off';
+    }
+    if (eventType.endsWith('_excursion_suppressed')) {
+      return 'Flip less than 2 minutes — mode/project excursion suppressed';
+    }
+    if (eventType.endsWith('_error')) {
+      const msg = (meta?.error || meta?.reason) as string | undefined;
+      return msg ? `Failed to execute: ${msg}` : 'Failed to execute task';
+    }
+    return null;
+  };
+
   const getEventLabel = (eventType: string) => {
     const labels: Record<string, string> = {
       context_flip: 'FLIP',
@@ -159,6 +209,29 @@ export default function StudioLiveFeed({
       pc_dump_sent: 'SENT',
       terminal_dump_sent: 'SENT',
       transcript_received: 'RECV',
+      // AI Team labels
+      chad_tick: 'LOOK',
+      chad_checkpoint: 'STMP',
+      chad_excursion_suppressed: 'EXCP',
+      chad_error: 'FAIL',
+      susan_tick: 'LOOK',
+      susan_checkpoint: 'STMP',
+      jen_tick: 'LOOK',
+      jen_checkpoint: 'STMP',
+      // 94xx Drift Tracking family
+      pc_git_status: 'GITS',
+      pc_git_commit: 'GITS',
+      git_status: 'GITS',
+      node_sensor_tick: 'LOOK',
+      node_sensor_error: 'FAIL',
+      git_origin_tick: 'LOOK',
+      git_origin_error: 'FAIL',
+      schema_status: 'DATA',
+      schema_tracker_tick: 'LOOK',
+      schema_error: 'FAIL',
+      sync_check: 'SYNC',
+      sync_in_sync: 'SYNC',
+      sync_drift_detected: 'SYNC',
     };
     return labels[eventType] || eventType.toUpperCase();
   };
@@ -280,6 +353,11 @@ export default function StudioLiveFeed({
                   [{service?.label || event.serviceId}]
                 </span>
                 <span className="text-gray-300">{event.message}</span>
+                {describeAIOpsEvent(event.eventType, event.details) && (
+                  <span className="text-gray-500 text-[10px] ml-2">
+                    {describeAIOpsEvent(event.eventType, event.details)}
+                  </span>
+                )}
               </div>
             );
           })

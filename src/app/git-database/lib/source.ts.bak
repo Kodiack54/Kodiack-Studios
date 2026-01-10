@@ -1,0 +1,587 @@
+/**
+ * Git Database - Data Source Layer
+ * Single source of truth for fetching git data from the database
+ * 
+ * All data access goes through here - no other module should query the DB directly
+ */
+
+import { Pool } from 'pg';
+import {
+  RepoPairSummary,
+  RepoDetail,
+  NodeGitState,
+  HistoryEntry,
+  SummaryFilters,
+  GitSummaryResponse,
+  GitRepoResponse,
+} from './types';
+import {
+  computeSyncState,
+  detectGroup,
+  extractServiceId,
+  generateRepoKey,
+  shortenSha,
+  countByState,
+  applyFilters,
+} from './selectors';
+
+// =============================================================================
+// DATABASE CONNECTION
+// =============================================================================
+
+const pool = new Pool({
+  host: process.env.PG_HOST || '161.35.229.220',
+  port: parseInt(process.env.PG_PORT || '9432'),
+  database: process.env.PG_DATABASE || 'kodiack_ai',
+  user: process.env.PG_USER || 'kodiack_admin',
+  password: process.env.PG_PASSWORD || 'K0d1ack_Pr0d_2025_Rx9',
+});
+
+// =============================================================================
+// RAW DATA FETCHERS
+// =============================================================================
+
+interface RawNodeState {
+  node_id: string;
+  current_state: {
+    repo?: string;
+    path?: string;
+    branch?: string;
+    local_sha?: string;
+    is_dirty?: boolean;
+    ahead?: number;
+    behind?: number;
+    last_commit_msg?: string;
+    last_commit_time?: string;
+  };
+  last_report: string;
+}
+
+interface RawPcReport {
+  repos: Array<{
+    repo: string;
+    path?: string;
+    branch: string;
+    head: string;
+    dirty: boolean;
+    ahead: number;
+    behind: number;
+    last_commit_msg?: string;
+    last_commit_time?: string;
+  }>;
+  timestamp: string;
+}
+
+interface RawRegistry {
+  repo_slug: string;
+  display_name?: string;
+  server_path?: string;
+  pc_path?: string;
+  github_url?: string;
+  is_active: boolean;
+  is_ai_team: boolean;
+  auto_discovered: boolean;
+  notes?: string;
+  project_slug?: string;
+}
+
+async function fetchServerRepos(): Promise<RawNodeState[]> {
+  const result = await pool.query(`
+    SELECT node_id, current_state, last_report
+    FROM ops.canonical_state
+    WHERE type = 'repo'
+    ORDER BY node_id, id
+  `);
+  return result.rows;
+}
+
+async function fetchLatestPcReport(): Promise<RawPcReport | null> {
+  const result = await pool.query(`
+    SELECT metadata, timestamp
+    FROM dev_ops_events
+    WHERE event_type = 'pc_git_status'
+      AND metadata->>'node_id' = 'user-pc'
+    ORDER BY timestamp DESC
+    LIMIT 1
+  `);
+  
+  if (result.rows.length === 0) return null;
+  
+  return {
+    repos: result.rows[0].metadata?.repos || [],
+    timestamp: result.rows[0].timestamp,
+  };
+}
+
+async function fetchRegistry(): Promise<Map<string, RawRegistry>> {
+  const result = await pool.query(`
+    SELECT * FROM ops.repo_registry WHERE is_active = true
+  `);
+  
+  const map = new Map<string, RawRegistry>();
+  for (const row of result.rows) {
+    map.set(generateRepoKey(row.repo_slug), row);
+  }
+  return map;
+}
+
+// =============================================================================
+// TRANSFORMERS
+// =============================================================================
+
+function toNodeGitState(raw: RawNodeState): NodeGitState {
+  const state = raw.current_state || {};
+  return {
+    node_id: raw.node_id,
+    path: state.path,
+    branch: state.branch || 'unknown',
+    head: state.local_sha || '',
+    head_short: shortenSha(state.local_sha),
+    dirty: state.is_dirty || false,
+    ahead: state.ahead || 0,
+    behind: state.behind || 0,
+    last_commit_msg: state.last_commit_msg,
+    last_commit_time: state.last_commit_time,
+    last_seen: raw.last_report,
+  };
+}
+
+function pcRepoToNodeGitState(
+  repo: RawPcReport['repos'][0],
+  timestamp: string
+): NodeGitState {
+  return {
+    node_id: 'user-pc',
+    path: repo.path,
+    branch: repo.branch,
+    head: repo.head,
+    head_short: shortenSha(repo.head),
+    dirty: repo.dirty,
+    ahead: repo.ahead || 0,
+    behind: repo.behind || 0,
+    last_commit_msg: repo.last_commit_msg,
+    last_commit_time: repo.last_commit_time,
+    last_seen: timestamp,
+  };
+}
+
+// =============================================================================
+// MAIN API FUNCTIONS
+// =============================================================================
+
+/**
+ * Get summary of all repos with precomputed sync state
+ * This is what /api/summary calls
+ */
+export async function getGitSummary(filters?: SummaryFilters): Promise<GitSummaryResponse> {
+  try {
+    // Fetch all data in parallel
+    const [serverRepos, pcReport, registry] = await Promise.all([
+      fetchServerRepos(),
+      fetchLatestPcReport(),
+      fetchRegistry(),
+    ]);
+
+    // Build map of all repos (keyed by normalized repo name)
+    const repoPairs = new Map<string, { server?: NodeGitState; pc?: NodeGitState }>();
+
+    // Add server repos
+    for (const raw of serverRepos) {
+      const state = raw.current_state;
+      if (!state?.repo) continue;
+      
+      const key = generateRepoKey(state.repo);
+      const nodeState = toNodeGitState(raw);
+      
+      const existing = repoPairs.get(key);
+      if (existing) {
+        existing.server = nodeState;
+      } else {
+        repoPairs.set(key, { server: nodeState });
+      }
+    }
+
+    // Add PC repos
+    if (pcReport) {
+      for (const repo of pcReport.repos) {
+        const key = generateRepoKey(repo.repo);
+        const nodeState = pcRepoToNodeGitState(repo, pcReport.timestamp);
+        
+        const existing = repoPairs.get(key);
+        if (existing) {
+          existing.pc = nodeState;
+        } else {
+          repoPairs.set(key, { pc: nodeState });
+        }
+      }
+    }
+
+    // Build summary array
+    const repos: RepoPairSummary[] = [];
+    
+    for (const [key, pair] of repoPairs) {
+      const repoName = pair.server?.path?.split('/').pop() || 
+                       pair.pc?.path?.split(/[/\\]/).pop() || 
+                       key;
+      
+      const regEntry = registry.get(key);
+      const sync = computeSyncState(pair.server, pair.pc);
+      
+      repos.push({
+        key,
+        repo: repoName,
+        repo_id: key,
+        group: detectGroup(repoName, regEntry?.project_slug),
+        service_id: extractServiceId(repoName),
+        project_slug: regEntry?.project_slug,
+        server: pair.server,
+        pc: pair.pc as any,
+        sync,
+        registry: regEntry ? {
+          display_name: regEntry.display_name,
+          github_url: regEntry.github_url,
+          notes: regEntry.notes,
+          is_active: regEntry.is_active,
+          auto_discovered: regEntry.auto_discovered,
+        } : undefined,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // Apply filters
+    const filtered = filters ? applyFilters(repos, filters) : repos;
+    
+    // Sort: orange first, then green, then gray
+    filtered.sort((a, b) => {
+      const order = { orange: 0, red: 1, gray: 2, green: 3 };
+      return order[a.sync.state] - order[b.sync.state];
+    });
+
+    const counts = countByState(filtered);
+
+    return {
+      success: true,
+      repos: filtered,
+      counts: {
+        total: filtered.length,
+        ...counts,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error('[GitDatabase] getGitSummary error:', error);
+    return {
+      success: false,
+      repos: [],
+      counts: { total: 0, green: 0, orange: 0, red: 0, gray: 0 },
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * Get detailed info for a single repo including history
+ * This is what /api/repo calls
+ */
+export async function getRepoDetail(repoKey: string): Promise<GitRepoResponse> {
+  try {
+    // Get summary first
+    const summary = await getGitSummary();
+    const repo = summary.repos.find(r => r.key === repoKey || r.repo === repoKey);
+    
+    if (!repo) {
+      return { success: false, repo: null, error: 'Repo not found' };
+    }
+
+    // Fetch history from events
+    const historyResult = await pool.query(`
+      SELECT 
+        id,
+        timestamp,
+        event_type,
+        metadata
+      FROM dev_ops_events
+      WHERE (
+        (event_type = 'pc_git_commit' AND metadata->>'repo' = $1)
+        OR (event_type = 'node_report' AND metadata->'git_repos' @> $2::jsonb)
+        OR (event_type = 'pc_git_status' AND metadata->'repos' @> $2::jsonb)
+      )
+      ORDER BY timestamp DESC
+      LIMIT 100
+    `, [repoKey, JSON.stringify([{ repo: repoKey }])]);
+
+    const history: HistoryEntry[] = [];
+    
+    for (const row of historyResult.rows) {
+      const meta = row.metadata || {};
+      
+      if (row.event_type === 'pc_git_commit') {
+        history.push({
+          origin: 'pc',
+          timestamp: row.timestamp,
+          head: meta.new_head || '',
+          head_short: shortenSha(meta.new_head),
+          branch: meta.branch || '',
+          dirty: false,
+          ahead: meta.ahead || 0,
+          behind: meta.behind || 0,
+          message: meta.commit_message,
+        });
+      } else if (row.event_type === 'pc_git_status') {
+        const pcRepo = (meta.repos || []).find((r: any) => 
+          generateRepoKey(r.repo) === generateRepoKey(repoKey)
+        );
+        if (pcRepo) {
+          history.push({
+            origin: 'pc',
+            timestamp: row.timestamp,
+            head: pcRepo.head || '',
+            head_short: shortenSha(pcRepo.head),
+            branch: pcRepo.branch || '',
+            dirty: pcRepo.dirty || false,
+            ahead: pcRepo.ahead || 0,
+            behind: pcRepo.behind || 0,
+            message: pcRepo.last_commit_msg,
+          });
+        }
+      } else if (row.event_type === 'node_report') {
+        const serverRepo = (meta.git_repos || []).find((r: any) =>
+          generateRepoKey(r.repo || r.path?.split('/').pop()) === generateRepoKey(repoKey)
+        );
+        if (serverRepo) {
+          history.push({
+            origin: 'server',
+            timestamp: row.timestamp,
+            head: serverRepo.local_sha || '',
+            head_short: shortenSha(serverRepo.local_sha),
+            branch: serverRepo.branch || '',
+            dirty: serverRepo.is_dirty || false,
+            ahead: serverRepo.ahead || 0,
+            behind: serverRepo.behind || 0,
+            message: serverRepo.last_commit_msg,
+          });
+        }
+      }
+    }
+
+    // Dedupe consecutive identical entries
+    const dedupedHistory = history.filter((entry, idx) => {
+      if (idx === 0) return true;
+      const prev = history[idx - 1];
+      return entry.head !== prev.head || entry.origin !== prev.origin;
+    });
+
+    const detail: RepoDetail = {
+      ...repo,
+      history: dedupedHistory,
+    };
+
+    return { success: true, repo: detail };
+  } catch (error) {
+    console.error('[GitDatabase] getRepoDetail error:', error);
+    return { success: false, repo: null, error: (error as Error).message };
+  }
+}
+
+// =============================================================================
+// FAMILY AGGREGATION
+// =============================================================================
+
+import type { FamilySummary, FamilySummaryResponse, InstanceState } from './types';
+
+interface FamilyRegistry {
+  repo_slug: string;
+  display_name: string;
+  family_key: string;
+  instance_group: string;
+  is_ai_team: boolean;
+  instances: Array<{ service_id: string; repo_path: string }>;
+  auto_update: boolean;
+  notes?: string;
+  github_url?: string;
+}
+
+async function fetchFamilyRegistry(): Promise<FamilyRegistry[]> {
+  const result = await pool.query(`
+    SELECT repo_slug, display_name, family_key, instance_group, 
+           is_ai_team, instances, auto_update, notes, github_url
+    FROM ops.repo_registry 
+    WHERE is_active = true AND family_key IS NOT NULL
+    ORDER BY instance_group, family_key
+  `);
+  return result.rows;
+}
+
+/**
+ * Get family summary - aggregates all instances per family
+ */
+export async function getFamilySummary(): Promise<FamilySummaryResponse> {
+  try {
+    const [familyRegistry, serverRepos, pcReport] = await Promise.all([
+      fetchFamilyRegistry(),
+      fetchServerRepos(),
+      fetchLatestPcReport(),
+    ]);
+
+    // Build lookup maps for quick access
+    const serverByPath = new Map<string, any>();
+    for (const raw of serverRepos) {
+      const state = raw.current_state;
+      if (state?.path) {
+        serverByPath.set(state.path, { ...state, last_report: raw.last_report });
+      }
+    }
+
+    const pcByRepo = new Map<string, any>();
+    if (pcReport) {
+      for (const repo of pcReport.repos) {
+        pcByRepo.set(repo.repo.toLowerCase(), { ...repo, last_seen: pcReport.timestamp });
+      }
+    }
+
+    const families: FamilySummary[] = [];
+
+    for (const family of familyRegistry) {
+      const instances: InstanceState[] = [];
+      const outOfSync: string[] = [];
+      const dirtyInstances: string[] = [];
+      const offlineInstances: string[] = [];
+      
+      // Get first instance as "desired" state reference
+      let desiredHead: string | undefined;
+      let desiredBranch: string | undefined;
+
+      // Check each registered instance
+      const registeredInstances = family.instances || [];
+      
+      // If no instances defined, try to find by family_key pattern
+      if (registeredInstances.length === 0) {
+        // Single-instance family - look for matching repo
+        const serverMatch = serverRepos.find(r => 
+          r.current_state?.path?.includes(family.family_key) ||
+          r.current_state?.repo?.toLowerCase() === family.family_key
+        );
+        if (serverMatch) {
+          registeredInstances.push({
+            service_id: family.repo_slug,
+            repo_path: serverMatch.current_state?.path || ''
+          });
+        }
+      }
+
+      for (const inst of registeredInstances) {
+        const serverState = serverByPath.get(inst.repo_path);
+        const pcState = pcByRepo.get(inst.service_id.toLowerCase());
+        
+        const now = Date.now();
+        const isOffline = !serverState || 
+          (new Date(serverState.last_report).getTime() < now - 90000);
+
+        const instanceState: InstanceState = {
+          service_id: inst.service_id,
+          repo_path: inst.repo_path,
+          node_id: serverState?.node_id,
+          branch: serverState?.branch,
+          head: serverState?.local_sha,
+          head_short: shortenSha(serverState?.local_sha),
+          dirty: serverState?.is_dirty || false,
+          ahead: serverState?.ahead || 0,
+          behind: serverState?.behind || 0,
+          last_commit_msg: serverState?.last_commit_msg,
+          last_seen: serverState?.last_report,
+          status: isOffline ? 'offline' : 'online',
+        };
+
+        instances.push(instanceState);
+
+        // Set desired from first online instance
+        if (!desiredHead && instanceState.head && !isOffline) {
+          desiredHead = instanceState.head;
+          desiredBranch = instanceState.branch;
+        }
+
+        // Track issues
+        if (isOffline) {
+          offlineInstances.push(inst.service_id);
+        }
+        if (instanceState.dirty) {
+          dirtyInstances.push(inst.service_id);
+        }
+        if (desiredHead && instanceState.head && instanceState.head !== desiredHead) {
+          outOfSync.push(inst.service_id);
+        }
+      }
+
+      // Compute sync state
+      const reasons: string[] = [];
+      let state: 'green' | 'orange' | 'red' | 'gray' = 'green';
+
+      if (offlineInstances.length === instances.length) {
+        state = 'gray';
+        reasons.push('all_offline');
+      } else if (offlineInstances.length > 0) {
+        state = 'orange';
+        reasons.push('some_offline');
+      }
+
+      if (outOfSync.length > 0) {
+        state = 'orange';
+        reasons.push('head_mismatch');
+      }
+
+      if (dirtyInstances.length > 0) {
+        state = 'orange';
+        reasons.push('dirty');
+      }
+
+      if (reasons.length === 0) {
+        reasons.push('synced');
+      }
+
+      families.push({
+        family_key: family.family_key,
+        display_name: family.display_name || family.family_key,
+        instance_group: family.instance_group || 'studio',
+        is_ai_team: family.is_ai_team,
+        desired_head: desiredHead,
+        desired_head_short: shortenSha(desiredHead),
+        desired_branch: desiredBranch,
+        instances,
+        instance_count: instances.length,
+        sync: {
+          state,
+          reasons: reasons as any,
+          in_sync_count: instances.length - outOfSync.length - offlineInstances.length,
+          out_of_sync_instances: outOfSync,
+          dirty_instances: dirtyInstances,
+          offline_instances: offlineInstances,
+        },
+        auto_update: family.auto_update || false,
+        notes: family.notes,
+        github_url: family.github_url,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // Count by state
+    const counts = { total: families.length, green: 0, orange: 0, red: 0, gray: 0 };
+    for (const f of families) {
+      counts[f.sync.state]++;
+    }
+
+    return {
+      success: true,
+      families,
+      counts,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error('[GitDatabase] getFamilySummary error:', error);
+    return {
+      success: false,
+      families: [],
+      counts: { total: 0, green: 0, orange: 0, red: 0, gray: 0 },
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
