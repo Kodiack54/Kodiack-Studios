@@ -425,8 +425,13 @@ export default function GitDriftBoard({ onRepoSelect, viewFilter = 'all', drople
             )}
           </div>
         ) : (
-          <div className="text-sm text-gray-600">
-            Click to configure database link
+          <div className="space-y-2">
+            <div className="text-sm text-yellow-400 font-medium">
+              Database not configured
+            </div>
+            <div className="text-xs text-gray-500">
+              Double-click → Edit Config → Set DB Target
+            </div>
           </div>
         )}
       </div>
