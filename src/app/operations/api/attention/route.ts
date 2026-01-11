@@ -20,6 +20,41 @@ interface AttentionItem {
   diagnostics: Record<string, any>;
 }
 
+/**
+ * Build a human-readable summary for git drift
+ */
+function buildGitSummary(state: any, reasons: string[]): string {
+  const parts: string[] = [];
+  const branch = state.branch || 'unknown';
+  
+  // Dirty = uncommitted changes
+  if (state.is_dirty || state.dirty) {
+    parts.push('uncommitted changes');
+  }
+  
+  // Ahead/behind
+  const ahead = state.ahead || 0;
+  const behind = state.behind || 0;
+  if (ahead > 0 && behind > 0) {
+    parts.push(`${ahead} ahead, ${behind} behind`);
+  } else if (ahead > 0) {
+    parts.push(`${ahead} commits to push`);
+  } else if (behind > 0) {
+    parts.push(`${behind} commits behind`);
+  }
+  
+  // SHA mismatch without ahead/behind means diverged or reset
+  if (reasons.includes('sha_mismatch') && ahead === 0 && behind === 0 && !state.is_dirty && !state.dirty) {
+    parts.push('SHA mismatch (force push?)');
+  }
+  
+  if (parts.length === 0) {
+    return `Drift on ${branch}`;
+  }
+  
+  return `${branch}: ${parts.join(', ')}`;
+}
+
 export async function GET() {
   try {
     const items: AttentionItem[] = [];
@@ -49,9 +84,7 @@ export async function GET() {
       const ageSeconds = lastSeen ? Math.floor((Date.now() - new Date(lastSeen).getTime()) / 1000) : 0;
 
       const reasons = row.drift_reasons || [];
-      const summary = reasons.length > 0
-        ? reasons.slice(0, 2).join(', ') + (reasons.length > 2 ? ` (+${reasons.length - 2} more)` : '')
-        : `Drift detected on ${row.node_id}`;
+      const summary = buildGitSummary(state, reasons);
 
       items.push({
         type: 'git',
@@ -161,7 +194,7 @@ export async function GET() {
 
         const hasErrors = erroredCount > 0;
         const summary = hasErrors
-          ? `${erroredCount} services errored, ${stoppedCount} stopped`
+          ? `${erroredCount} errored, ${stoppedCount} stopped`
           : `${stoppedCount} services stopped`;
 
         items.push({
@@ -171,7 +204,7 @@ export async function GET() {
           attention_level: hasErrors ? 'urgent' : 'warn',
           age_seconds: ageSeconds,
           summary,
-          deep_link: `/operations?node=${encodeURIComponent(row.node_id)}`,
+          deep_link: `/droplets?node=${encodeURIComponent(row.node_id)}`,
           diagnostics: {
             node_id: row.node_id,
             droplet_name: state.droplet_name,
