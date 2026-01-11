@@ -61,8 +61,9 @@ export default function SessionLogsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [modeFilter, setModeFilter] = useState<string>('');
   const [projectFilter, setProjectFilter] = useState<string>('');
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>(''); // NEW: All/Internal/External
   const [availableProjects, setAvailableProjects] = useState<Project[]>([]);
-  
+
   // Static modes list
   const MODES = ['project', 'forge', 'support', 'planning', 'other'];
   const [dateFilter, setDateFilter] = useState<string>('');
@@ -122,13 +123,26 @@ export default function SessionLogsPage() {
     return () => clearInterval(interval);
   }, [refreshAll]);
 
+  // Filter sessions by source type
+  const filteredSessions = sessions.filter(s => {
+    if (!sourceTypeFilter) return true;
+    return s.source_type === sourceTypeFilter;
+  });
+
+  // Count sessions by source type for filter badges
+  const sessionCounts = {
+    total: sessions.length,
+    internal: sessions.filter(s => s.source_type === 'internal_claude').length,
+    external: sessions.filter(s => s.source_type === 'external_claude').length,
+  };
+
   // Filter worklogs
   const filteredWorklogs = worklogs.filter(w => {
     if (modeFilter && w.mode !== modeFilter) return false;
     if (projectFilter && w.project_slug !== projectFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const matches = 
+      const matches =
         w.ts_id?.toLowerCase().includes(q) ||
         w.briefing?.toLowerCase().includes(q) ||
         w.project_slug?.toLowerCase().includes(q) ||
@@ -188,14 +202,52 @@ export default function SessionLogsPage() {
       {/* Main Content - 2 columns: Chad's Sessions | Worklog Library */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Chad's Sessions */}
-        <div className="w-80 flex flex-col border-r border-gray-700 shrink-0">
+        <div className="w-96 flex flex-col border-r border-gray-700 shrink-0">
           <div className="px-4 py-2 bg-gray-800/50 border-b border-gray-700">
-            <h2 className="text-sm font-medium text-gray-300">Recent Sessions ({sessions.length})</h2>
+            <h2 className="text-sm font-medium text-gray-300 mb-2">Recent Sessions ({filteredSessions.length})</h2>
+            {/* Source Type Filter Pills */}
+            <div className="flex gap-1">
+              <button
+                onClick={() => setSourceTypeFilter('')}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
+                  !sourceTypeFilter
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                All ({sessionCounts.total})
+              </button>
+              <button
+                onClick={() => setSourceTypeFilter('internal_claude')}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
+                  sourceTypeFilter === 'internal_claude'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                Internal ({sessionCounts.internal})
+              </button>
+              <button
+                onClick={() => setSourceTypeFilter('external_claude')}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
+                  sourceTypeFilter === 'external_claude'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                External ({sessionCounts.external})
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-auto p-2 space-y-1">
-            {sessions.map(session => (
+            {filteredSessions.map(session => (
               <SessionRow key={session.id} session={session} />
             ))}
+            {filteredSessions.length === 0 && (
+              <div className="text-center py-8 text-gray-500 text-sm">
+                No {sourceTypeFilter === 'external_claude' ? 'external' : sourceTypeFilter === 'internal_claude' ? 'internal' : ''} sessions found
+              </div>
+            )}
           </div>
         </div>
 
@@ -303,25 +355,36 @@ function SessionRow({ session }: { session: Session }) {
     archived: 'bg-gray-800 text-gray-400',
   };
 
-  // Determine display name from source (priority: team_port > source_name > source_type > fallback)
+  // Determine source type and display name - source_type is the PRIMARY key
+  const isExternal = session.source_type === 'external_claude';
+  const isInternal = session.source_type === 'internal_claude';
+
+  // Display name based on source_type FIRST, then fallback to parsing
   let displayName = 'Session';
-  
-  // 1. Check team_port first (most reliable)
-  if (session.terminal_port) {
-    displayName = `Internal Claude (${session.terminal_port})`;
-  }
-  // 2. Parse port from source_name if it contains terminal-####
-  else if (session.source_name) {
-    const portMatch = session.source_name.match(/terminal-(\d+)/);
-    if (portMatch) {
-      displayName = `Internal Claude (${portMatch[1]})`;
-    } else if (session.source_name.includes('C--Users') || session.source_name.includes('agent-')) {
-      displayName = 'External Claude (Desktop)';
+  let sourceSubtext = '';
+
+  if (isExternal) {
+    displayName = 'External Claude (PC)';
+    // Show truncated source_name as subtext if it's a UUID filename
+    if (session.source_name) {
+      const match = session.source_name.match(/([a-f0-9-]+)\.json/i);
+      sourceSubtext = match ? `...${match[1].slice(-8)}` : '';
     }
-  }
-  // 3. Check source_type as fallback
-  else if (session.source_type === 'external_claude') {
-    displayName = 'External Claude';
+  } else if (isInternal) {
+    const port = session.terminal_port || (session.source_name?.match(/terminal-(\d+)/)?.[1]);
+    displayName = port ? `Terminal ${port}` : 'Internal Claude';
+    // Show bucket as subtext
+    if (session.source_name) {
+      const bucketMatch = session.source_name.match(/\/([a-z0-9]+)$/i);
+      sourceSubtext = bucketMatch ? bucketMatch[1].slice(0, 8) : '';
+    }
+  } else {
+    // Unknown source_type - fallback to old logic
+    if (session.terminal_port) {
+      displayName = `Terminal ${session.terminal_port}`;
+    } else if (session.source_name) {
+      displayName = session.source_name.slice(0, 20);
+    }
   }
 
   // Get project display name (prefer name over slug)
@@ -329,18 +392,34 @@ function SessionRow({ session }: { session: Session }) {
     ? session.project_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     : session.mode || 'Unrouted');
 
+  // Source type badge colors
+  const sourceBadge = isExternal
+    ? { text: 'EXT', bg: 'bg-teal-600', textColor: 'text-white' }
+    : isInternal
+    ? { text: 'INT', bg: 'bg-blue-600', textColor: 'text-white' }
+    : { text: '???', bg: 'bg-gray-600', textColor: 'text-gray-300' };
+
   return (
-    <div className="p-2 rounded border border-gray-700 bg-gray-800/50 text-xs">
-      <div className="flex items-center justify-between">
-        <span className="font-medium text-white truncate">
+    <div className={`p-2 rounded border ${isExternal ? 'border-teal-700/50' : 'border-gray-700'} bg-gray-800/50 text-xs`}>
+      <div className="flex items-center gap-2">
+        {/* Source Type Badge - always visible */}
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${sourceBadge.bg} ${sourceBadge.textColor} shrink-0`}>
+          {sourceBadge.text}
+        </span>
+        <span className="font-medium text-white truncate flex-1">
           {displayName}
         </span>
         <span className="text-gray-500 font-mono shrink-0">{time}</span>
       </div>
       <div className="flex items-center justify-between mt-1">
-        <span className="text-gray-400 truncate">
-          {projectDisplay}
-        </span>
+        <div className="flex items-center gap-2 truncate">
+          <span className="text-gray-400 truncate">
+            {projectDisplay}
+          </span>
+          {sourceSubtext && (
+            <span className="text-gray-600 font-mono text-[10px]">{sourceSubtext}</span>
+          )}
+        </div>
         <span className={`px-1.5 py-0.5 rounded text-[10px] ${statusColors[session.status || 'active']}`}>
           {session.status || 'active'}
         </span>
