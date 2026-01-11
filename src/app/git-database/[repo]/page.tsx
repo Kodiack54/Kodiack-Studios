@@ -46,9 +46,9 @@ interface DiscoveredPath {
 }
 
 interface DbTarget {
-  id: string;
+  db_key: string;
   name: string;
-  type: string;
+  db_type: string;
 }
 
 export default function RepoDetailPage() {
@@ -76,7 +76,7 @@ export default function RepoDetailPage() {
   
   const selectedClient = clients.find(c => c.id === editForm.client_id);
   const availableProjects = selectedClient?.projects || [];
-  const filteredDbTargets = dbTargets.filter(t => !editForm.db_type || t.type === editForm.db_type);
+  const filteredDbTargets = dbTargets.filter(t => !editForm.db_type || t.db_type === editForm.db_type);
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -135,11 +135,16 @@ export default function RepoDetailPage() {
         }
         setPcPaths([...new Set(extractedPcPaths)].sort());
 
-        setDbTargets([
-          { id: 'supabase-nextbid-live', name: 'NextBid Live', type: 'supabase' },
-          { id: 'supabase-nextbid-staging', name: 'NextBid Staging', type: 'supabase' },
-          { id: 'droplet-9432-kodiack', name: 'Studio Dev (9432)', type: 'droplet' },
-        ]);
+        // Fetch DB targets from API
+        try {
+          const dbRes = await fetch('/git-database/api/db-targets');
+          const dbData = await dbRes.json();
+          if (dbData.success && Array.isArray(dbData.targets)) {
+            setDbTargets(dbData.targets);
+          }
+        } catch (e) {
+          console.error('Failed to fetch DB targets:', e);
+        }
       } catch (e) {
         console.error('Failed to fetch dropdown data:', e);
       }
@@ -393,9 +398,9 @@ export default function RepoDetailPage() {
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm"
                 >
                   <option value="">-- Select Type --</option>
+                  <option value="postgres">PostgreSQL</option>
                   <option value="supabase">Supabase</option>
-                  <option value="droplet">Droplet Postgres</option>
-                  <option value="other">Other</option>
+                  <option value="mysql">MySQL</option>
                 </select>
               </div>
 
@@ -411,7 +416,7 @@ export default function RepoDetailPage() {
                 >
                   <option value="">-- Select Target --</option>
                   {filteredDbTargets.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.db_key} value={t.db_key}>{t.name}</option>
                   ))}
                 </select>
               </div>

@@ -2,31 +2,60 @@
  * DB Schema API
  * Fetch schema info for linked repos, return tables/columns/constraints/indexes
  * Used by dashboard to display DB schema and by 9403 to track drift
+ *
+ * Connection Flow:
+ * 1. repo_registry.db_target_id → ops.db_targets.db_key
+ * 2. db_targets.connection_url_env → process.env[connection_url_env]
+ * 3. Connect to target DB using resolved URL
  */
 
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import crypto from 'crypto';
 
+// Main pool - connects to kodiack_ai using env var
 const pool = new Pool({
-  host: process.env.PG_HOST || '127.0.0.1',
-  port: parseInt(process.env.PG_PORT || '9432'),
-  database: process.env.PG_DATABASE || 'kodiack_ai',
-  user: process.env.PG_USER || 'postgres',
-  password: process.env.PG_PASSWORD || 'K0d1ack_Pr0d_2025_Rx9',
+  connectionString: process.env.DB_KODIACK_AI_URL,
 });
 
-// DB Target connection configs (referenced by db_target_id)
-// In production, these would come from a secure secrets store
-const DB_TARGETS: Record<string, { host: string; port: number; user: string; password: string }> = {
-  'kodiack-local': {
-    host: '127.0.0.1',
-    port: 9432,
-    user: 'postgres',
-    password: 'K0d1ack_Pr0d_2025_Rx9'
-  },
-  // Add more targets as needed
-};
+interface DbTarget {
+  db_key: string;
+  name: string;
+  connection_kind: 'url' | 'parts';
+  connection_url_env: string | null;
+  db_host: string | null;
+  db_port: number | null;
+  db_name: string | null;
+  db_user: string | null;
+  secret_ref: string | null;
+  is_enabled: boolean;
+}
+
+// Cache db_targets for 60 seconds to reduce DB lookups
+let dbTargetsCache: { targets: Map<string, DbTarget>; fetchedAt: number } | null = null;
+const CACHE_TTL_MS = 60000;
+
+async function getDbTargets(): Promise<Map<string, DbTarget>> {
+  const now = Date.now();
+  if (dbTargetsCache && (now - dbTargetsCache.fetchedAt) < CACHE_TTL_MS) {
+    return dbTargetsCache.targets;
+  }
+
+  const result = await pool.query<DbTarget>(`
+    SELECT db_key, name, connection_kind, connection_url_env,
+           db_host, db_port, db_name, db_user, secret_ref, is_enabled
+    FROM ops.db_targets
+    WHERE is_enabled = true
+  `);
+
+  const targets = new Map<string, DbTarget>();
+  for (const row of result.rows) {
+    targets.set(row.db_key, row);
+  }
+
+  dbTargetsCache = { targets, fetchedAt: now };
+  return targets;
+}
 
 interface TableSchema {
   name: string;
@@ -78,18 +107,36 @@ async function fetchSchemaFromTarget(
   dbName: string,
   schemaName: string = 'public'
 ): Promise<{ tables: TableSchema[]; error?: string }> {
-  const targetConfig = DB_TARGETS[targetId];
+  // Look up target config from ops.db_targets
+  const targets = await getDbTargets();
+  const targetConfig = targets.get(targetId);
+
   if (!targetConfig) {
-    return { tables: [], error: `Unknown DB target: ${targetId}` };
+    return { tables: [], error: `Unknown DB target: ${targetId}. Configure it in ops.db_targets.` };
   }
 
-  const targetPool = new Pool({
-    host: targetConfig.host,
-    port: targetConfig.port,
-    database: dbName,
-    user: targetConfig.user,
-    password: targetConfig.password,
-  });
+  if (!targetConfig.is_enabled) {
+    return { tables: [], error: `DB target ${targetId} is disabled` };
+  }
+
+  // Resolve connection - prefer URL from env var
+  let targetPool: Pool;
+
+  if (targetConfig.connection_kind === 'url' && targetConfig.connection_url_env) {
+    const connectionUrl = process.env[targetConfig.connection_url_env];
+    if (!connectionUrl) {
+      return { tables: [], error: `Missing env var ${targetConfig.connection_url_env} for target ${targetId}` };
+    }
+    // Parse URL and override database name if different from target config
+    const url = new URL(connectionUrl);
+    url.pathname = `/${dbName}`;
+    targetPool = new Pool({ connectionString: url.toString() });
+  } else if (targetConfig.db_host && targetConfig.db_port && targetConfig.db_user) {
+    // Parts-based connection (requires secret_ref to be resolved separately)
+    return { tables: [], error: `Parts-based connection not yet implemented for ${targetId}` };
+  } else {
+    return { tables: [], error: `Invalid connection config for target ${targetId}` };
+  }
 
   try {
     // Get all tables in schema
