@@ -23,15 +23,13 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { showServers, toggleServers } = useContext(ProductionStatusContext);
 
-  // Tab navigation - exactly like MyKeystone style
-  // Tabs: Servers / Operations / Dev Tools / HelpDesk / Calendar / Development
+  // Tab navigation - Operations / Dev Tools / Projects / Studio / Calendar
   const tabs = [
-    { id: 'servers', label: 'Servers', path: '/servers/tradelines' },
     { id: 'operations', label: 'Operations', path: '/operations' },
     { id: 'dev-tools', label: 'Dev Tools', path: '/dev-controls' },
-    { id: 'helpdesk', label: 'HelpDesk', path: '/helpdesk' },
-    { id: 'calendar', label: 'Calendar', path: '/calendar' },
+    { id: 'projects', label: 'Projects', path: '/project-management' },
     { id: 'studio', label: 'Studio', path: '/studio' },
+    { id: 'calendar', label: 'Calendar', path: '/calendar' },
   ];
 
   const getActiveTab = () => {
