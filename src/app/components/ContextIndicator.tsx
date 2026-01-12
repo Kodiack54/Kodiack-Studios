@@ -18,6 +18,10 @@ interface Project {
   id: string;
   slug: string;
   name: string;
+  status?: string;
+  infra_complete?: boolean;
+  client_name?: string;
+  is_parent?: boolean;
 }
 
 export default function ContextIndicator() {
@@ -44,10 +48,10 @@ export default function ContextIndicator() {
     const fetchProjects = async () => {
       setLoadingProjects(true);
       try {
-        const res = await fetch('/api/projects?parents_only=true');
+        const res = await fetch('/project-management/api/registry');
         const data = await res.json();
-        if (data.success && data.projects) {
-          setProjects(data.projects);
+        if (data.success && data.registry) {
+          setProjects(data.registry);
         }
       } catch (err) {
         console.error('Failed to fetch projects:', err);

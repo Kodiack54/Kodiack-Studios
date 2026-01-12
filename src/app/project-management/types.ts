@@ -3,14 +3,18 @@
  * All types for the project management feature
  */
 
+export type ProjectStatus = 'planning' | 'active' | 'paused' | 'archived';
 export interface Project {
   id: string;
   name: string;
   slug: string;
   description?: string;
+  status: ProjectStatus;
   droplet_name?: string;
   droplet_ip?: string;
   server_path?: string;
+  local_path?: string;
+  database_schema?: string;
   port_dev?: number;
   port_test?: number;
   port_prod?: number;
@@ -60,6 +64,7 @@ export interface Schema {
   is_nullable: boolean;
   column_default?: string;
   description?: string;
+  status: ProjectStatus;
 }
 
 export interface CodeChange {
@@ -132,7 +137,7 @@ export interface PhaseItem {
   updated_at: string;
 }
 
-export type TabType = 'phases' | 'todos' | 'knowledge' | 'docs' | 'database' | 'structure' | 'conventions' | 'notepad' | 'bugs';
+export type TabType = 'phases' | 'todos' | 'knowledge' | 'docs' | 'database' | 'structure' | 'conventions' | 'notepad' | 'bugs' | 'worklogs';
 
 export interface TabConfig {
   id: TabType;
@@ -143,6 +148,7 @@ export interface TabConfig {
 
 export const TABS: TabConfig[] = [
   { id: 'phases', label: 'Phases', icon: 'Milestone', parentOnly: true },
+  { id: 'worklogs', label: 'Worklogs', icon: 'ClipboardList' },
   { id: 'todos', label: 'Todos', icon: 'CheckSquare' },
   { id: 'knowledge', label: 'Knowledge', icon: 'Brain' },
   { id: 'docs', label: 'Docs', icon: 'FileText' },
