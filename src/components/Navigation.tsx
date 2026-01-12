@@ -35,14 +35,12 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
   ];
 
   const getActiveTab = () => {
-    if (pathname?.startsWith('/servers')) return 'servers';
-    if (pathname?.startsWith('/credentials')) return 'servers'; // Credentials is under servers tab
     if (pathname?.startsWith('/operations')) return 'operations';
     if (pathname?.startsWith('/dev-controls')) return 'dev-tools';
-    if (pathname?.startsWith('/helpdesk')) return 'helpdesk';
-    if (pathname?.startsWith('/calendar')) return 'calendar';
+    if (pathname?.startsWith('/project-management')) return 'projects';
     if (pathname?.startsWith('/studio')) return 'studio';
     if (pathname?.startsWith('/team')) return 'studio';
+    if (pathname?.startsWith('/calendar')) return 'calendar';
     return '';
   };
 
@@ -173,13 +171,11 @@ export default function Navigation({ pageTitle, pageActions }: NavigationProps) 
                   {pageTitle?.title || (
                     <>
                       {activeTab === '' && 'Dashboard'}
-                      {activeTab === 'servers' && !isCredentialsPage && 'Server Management'}
-                      {isCredentialsPage && 'Credentials & Sources'}
                       {activeTab === 'operations' && 'Operations'}
                       {activeTab === 'dev-tools' && 'Development Tools'}
-                      {activeTab === 'helpdesk' && 'Support Center'}
-                      {activeTab === 'calendar' && 'Team Schedule'}
+                      {activeTab === 'projects' && 'Project Management'}
                       {activeTab === 'studio' && 'Development Environment'}
+                      {activeTab === 'calendar' && 'Team Schedule'}
                     </>
                   )}
                 </h1>

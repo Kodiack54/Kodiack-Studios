@@ -3,7 +3,10 @@
 import { useState, useEffect, useContext } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { User, Users, Calendar, CalendarCheck, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { User, Users, Calendar, CalendarCheck, AlertCircle, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import ServerStatusIndicator, { ProjectStatus, SlotStatus } from './ServerStatusIndicator';
 import ServerDetailPanel from './ServerDetailPanel';
 import OperationsStatusIndicator from '@/app/operations/components/OperationsStatusIndicator';
@@ -11,7 +14,6 @@ import OperationsDetailPanel from '@/app/operations/components/OperationsDetailP
 import { StudioService } from '@/app/operations/config';
 import { ProductionStatusContext } from '@/app/layout';
 import { useUserContext } from '@/app/contexts/UserContextProvider';
-import AttentionDrawer from './AttentionDrawer';
 
 // Mock current user - TODO: Get from auth context
 const currentUser = {
@@ -41,6 +43,29 @@ const allMembers = [
   { id: '8', name: 'Jordan', role: 'UI Designer', color: '#F472B6', teams: ['frontend-team'] },
   { id: '9', name: 'Casey', role: 'Junior Dev', color: '#84CC16', teams: ['dev-team', 'frontend-team'] },
 ];
+
+// Work tab configuration interface
+interface WorkTabConfig {
+  id: string;
+  path: string;
+  icon: string;
+  label: string;
+  activeColor: string;
+  pathMatch: 'exact' | 'startsWith';
+}
+
+// Work tabs configuration for drag-and-drop ordering
+const WORK_TABS: WorkTabConfig[] = [
+  { id: 'session-logs', path: '/session-logs', icon: '🎯', label: 'Session Logs', activeColor: 'cyan', pathMatch: 'exact' },
+  { id: 'ai-team', path: '/ai-team', icon: '🤖', label: 'AI Team', activeColor: 'green', pathMatch: 'startsWith' },
+  { id: 'terminal', path: '/terminal', icon: '💻', label: 'Terminal', activeColor: 'emerald', pathMatch: 'startsWith' },
+  { id: 'git-database', path: '/git-database', icon: '🧬', label: 'Git / Database', activeColor: 'teal', pathMatch: 'startsWith' },
+  { id: 'droplets', path: '/droplets', icon: '💧', label: 'Droplets', activeColor: 'purple', pathMatch: 'startsWith' },
+  { id: 'helpdesk', path: '/helpdesk', icon: '🎫', label: 'HelpDesk', activeColor: 'amber', pathMatch: 'startsWith' },
+  { id: 'servers', path: '/servers', icon: '🖧', label: 'Servers', activeColor: 'rose', pathMatch: 'startsWith' },
+];
+
+const DEFAULT_TAB_ORDER = WORK_TABS.map(t => t.id);
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -77,30 +102,51 @@ export default function Sidebar() {
   const [selectedOpsService, setSelectedOpsService] = useState<StudioService | null>(null);
   const [showOpsDetailPanel, setShowOpsDetailPanel] = useState(false);
 
-  // Attention level for Git/Database button (from unified attention API)
-  const [attentionLevel, setAttentionLevel] = useState<'none' | 'warn' | 'urgent'>('none');
-  const [showAttentionDrawer, setShowAttentionDrawer] = useState(false);
+  // Work tabs drag-and-drop state
+  const [workTabOrder, setWorkTabOrder] = useState<string[]>(DEFAULT_TAB_ORDER);
 
-  // Fetch attention level periodically
+  // Drag-and-drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  // Load work tab order from localStorage on mount
   useEffect(() => {
-    const fetchAttention = async () => {
+    const saved = localStorage.getItem('workTabOrder');
+    if (saved) {
       try {
-        const res = await fetch('/operations/api/attention');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.attention?.overall) {
-            setAttentionLevel(data.attention.overall);
-          }
+        const parsed = JSON.parse(saved);
+        // Validate all IDs exist
+        if (Array.isArray(parsed) && parsed.every((id: string) => WORK_TABS.some(t => t.id === id))) {
+          // Add any new tabs that weren't in saved order
+          const newTabs = DEFAULT_TAB_ORDER.filter(id => !parsed.includes(id));
+          setWorkTabOrder([...parsed, ...newTabs]);
         }
-      } catch {
-        // Silently fail - don't break sidebar if API is down
+      } catch (e) {
+        console.error('Failed to load work tab order:', e);
       }
-    };
-
-    fetchAttention();
-    const interval = setInterval(fetchAttention, 30000); // Every 30s
-    return () => clearInterval(interval);
+    }
   }, []);
+
+  // Handle drag end - reorder tabs
+  const handleWorkTabDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setWorkTabOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        localStorage.setItem('workTabOrder', JSON.stringify(newOrder));
+        return newOrder;
+      });
+    }
+  };
+
+  // Get sorted work tabs based on current order
+  const sortedWorkTabs = workTabOrder
+    .map(id => WORK_TABS.find(t => t.id === id))
+    .filter((t): t is typeof WORK_TABS[0] => t !== undefined);
 
   // Auto-collapse servers on calendar page, auto-expand on other pages
   useEffect(() => {
@@ -271,103 +317,27 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        {/* Group D: Work surface tabs - hidden on Calendar page */}
+        {/* Group D: Work surface tabs - hidden on Calendar page, drag-and-drop enabled */}
         {!isCalendarPage && (
-        <div className="px-2 py-2 space-y-1">
-          <button
-            onClick={() => handleWorkTabClick('/session-logs')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname === '/session-logs'
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
+        <div className="px-2 py-2">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleWorkTabDragEnd}
           >
-            <span>🎯</span>
-            <span>Session Logs</span>
-          </button>
-          <button
-            onClick={() => handleWorkTabClick('/project-management')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname?.startsWith('/project-management')
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            <span>📁</span>
-            <span>Projects</span>
-          </button>
-          <button
-            onClick={() => handleWorkTabClick('/ai-team')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname?.startsWith('/ai-team')
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            <span>🤖</span>
-            <span>AI Team</span>
-          </button>
-          <button
-            onClick={() => handleWorkTabClick('/terminal')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname?.startsWith('/terminal')
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            <span>💻</span>
-            <span>Terminal</span>
-          </button>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                if (attentionLevel !== 'none') {
-                  setShowAttentionDrawer(true);
-                } else {
-                  handleWorkTabClick('/git-database');
-                }
-              }}
-              className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                pathname?.startsWith('/git-database')
-                  ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
-                  : attentionLevel === 'urgent'
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : attentionLevel === 'warn'
-                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
-              }`}
-            >
-              <span>🧬</span>
-              <span>Git / Database</span>
-              {attentionLevel !== 'none' && (
-                <span className={`w-2 h-2 rounded-full ${attentionLevel === 'urgent' ? 'bg-red-500' : 'bg-yellow-500'}`}></span>
-              )}
-            </button>
-            {attentionLevel !== 'none' && (
-              <button
-                onClick={() => handleWorkTabClick('/git-database')}
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-                title="Go to Git/Database page"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {/* Droplets Button */}
-          <button
-            onClick={() => handleWorkTabClick('/droplets')}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              pathname?.startsWith('/droplets')
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800'
-            }`}
-          >
-            <span>🖥️</span>
-            <span>Droplets</span>
-          </button>
+            <SortableContext items={workTabOrder} strategy={verticalListSortingStrategy}>
+              <div className="space-y-1">
+                {sortedWorkTabs.map((tab) => (
+                  <SortableWorkTab
+                    key={tab.id}
+                    tab={tab}
+                    pathname={pathname}
+                    onNavigate={handleWorkTabClick}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
         )}
 
@@ -685,12 +655,6 @@ export default function Sidebar() {
           onClose={handleCloseOpsDetailPanel}
         />
       )}
-
-      {/* Attention Drawer */}
-      <AttentionDrawer
-        isOpen={showAttentionDrawer}
-        onClose={() => setShowAttentionDrawer(false)}
-      />
     </>
   );
 }
@@ -727,6 +691,73 @@ const CREDENTIAL_CATEGORIES = [
   { key: 'municipal', label: 'Municipal', icon: '⚡', path: '/credentials/municipal' },
   { key: 'other', label: 'Other', icon: '📦', path: '/credentials/other' },
 ];
+
+// SortableWorkTab component follows
+
+function SortableWorkTab({
+  tab,
+  pathname,
+  onNavigate,
+}: {
+  tab: WorkTabConfig;
+  pathname: string | null;
+  onNavigate: (href: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tab.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : 1,
+  };
+
+  const isActive = tab.pathMatch === 'exact'
+    ? pathname === tab.path
+    : pathname?.startsWith(tab.path);
+
+  const colorClasses: Record<string, { active: string; inactive: string }> = {
+    cyan: { active: 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30', inactive: 'text-gray-400 hover:text-white hover:bg-gray-800' },
+    green: { active: 'bg-green-500/20 text-green-400 border border-green-500/30', inactive: 'text-gray-400 hover:text-white hover:bg-gray-800' },
+    emerald: { active: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30', inactive: 'text-gray-400 hover:text-white hover:bg-gray-800' },
+    teal: { active: 'bg-teal-500/20 text-teal-400 border border-teal-500/30', inactive: 'text-gray-400 hover:text-white hover:bg-gray-800' },
+    purple: { active: 'bg-purple-500/20 text-purple-400 border border-purple-500/30', inactive: 'text-gray-400 hover:text-white hover:bg-gray-800' },
+    amber: { active: 'bg-amber-500/20 text-amber-400 border border-amber-500/30', inactive: 'text-gray-400 hover:text-white hover:bg-gray-800' },
+    rose: { active: 'bg-rose-500/20 text-rose-400 border border-rose-500/30', inactive: 'text-gray-400 hover:text-white hover:bg-gray-800' },
+  };
+
+  const colors = colorClasses[tab.activeColor] || colorClasses.cyan;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <button
+        onClick={() => onNavigate(tab.path)}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+          isActive ? colors.active : colors.inactive
+        }`}
+      >
+        {/* Drag handle */}
+        <span
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 -ml-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-4 h-4" />
+        </span>
+        <span>{tab.icon}</span>
+        <span>{tab.label}</span>
+      </button>
+    </div>
+  );
+}
 
 function CredentialsDropdown({ pathname }: { pathname: string | null }) {
   const [isExpanded, setIsExpanded] = useState(false);
