@@ -59,7 +59,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('project_slug', projectSlug);
     }
 
-    const { data: worklogs, error } = await query;
+    const { data, error } = await query;
+    const worklogs = (data || []) as any[];
 
     if (error) {
       console.error('Error fetching worklogs:', error);
@@ -68,14 +69,14 @@ export async function GET(request: NextRequest) {
 
     // Calculate rollup stats if requested
     let rollup = null;
-    if (includeRollup && worklogs && worklogs.length > 0) {
+    if (includeRollup && worklogs.length > 0) {
       rollup = calculateRollupStats(worklogs);
     }
 
     return NextResponse.json({
       success: true,
-      worklogs: worklogs || [],
-      count: worklogs?.length || 0,
+      worklogs,
+      count: worklogs.length,
       rollup,
     });
   } catch (error) {
