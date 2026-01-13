@@ -133,7 +133,7 @@ export default function ContextIndicator() {
               <>
 
                 {/* Projects */}
-                {projects.filter(p => p.slug !== 'the-forge').map((project) => (
+                {projects.filter(p => p.slug !== 'the-forge' && p.is_parent).map((project) => (
                   <button
                     key={project.id}
                     onClick={() => handleSelectProject(project)}
