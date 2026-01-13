@@ -85,7 +85,7 @@ export default function ContextIndicator() {
 
   // Display name for current selection (show stickyProject, not effectiveProject)
   // On system tabs, effectiveProject is forced to Studios Platform, but we show stickyProject
-  const displayName = isForgeRoute ? 'The Forge' : (stickyProject?.name || 'Studios Platform');
+  const displayName = stickyProject?.name || 'Studios Platform';
 
   if (isLoading) {
     return (
@@ -133,7 +133,7 @@ export default function ContextIndicator() {
               <>
 
                 {/* Projects */}
-                {projects.filter(p => isForgeRoute ? p.slug === 'the-forge' : p.slug !== 'the-forge').map((project) => (
+                {projects.filter(p => p.slug !== 'the-forge').map((project) => (
                   <button
                     key={project.id}
                     onClick={() => handleSelectProject(project)}

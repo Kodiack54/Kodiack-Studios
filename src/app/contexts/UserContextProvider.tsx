@@ -266,19 +266,15 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   // Context Contract v1.0: Compute effective project
-  // - Forge routes → The Forge (always)
+  // - Forge routes → stickyProject (forge is a MODE, not a project override)
   // - Planning routes → stickyProject (the project being planned)
   // - Passive routes → dropdown or last active
   // - System routes → Studios Platform
   // - Otherwise → stickyProject
   const effectiveProject = useMemo((): StickyProject | null => {
-    // Forge always uses The Forge project
+    // Forge is a MODE, not a project - keep stickyProject
     if (isForgeRoute) {
-      return {
-        id: THE_FORGE_ID,
-        slug: THE_FORGE_SLUG,
-        name: THE_FORGE_NAME,
-      };
+      return stickyProject;
     }
     // Planning uses the project being planned (stickyProject)
     if (isPlanningRoute) {

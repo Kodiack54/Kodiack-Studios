@@ -14,6 +14,10 @@ import { db } from '@/lib/db';
 
 export type ContextMode = 'worklog' | 'forge' | 'support' | 'planning' | 'other' | 'break';
 export type ContextSource = 'universal' | 'studio' | 'autoflip' | 'timeclock' | 'manual';
+// The Forge guardrail - prevents forge MODE from overwriting project to the-forge PROJECT
+const THE_FORGE_ID = '00000000-0000-0000-0000-000000f09e01';
+const THE_FORGE_SLUG = 'the-forge';
+
 
 export interface UserContext {
   id: string;
@@ -145,6 +149,34 @@ export async function POST(request: NextRequest) {
       );
     }
     // Note: non-project modes CAN have project_id (effective project stays)
+    // GUARDRAIL: Forge is a MODE, not a project
+    // If mode=forge and project is the-forge, preserve existing project instead
+    let guardrail_applied = false;
+    let effective_project_id = project_id;
+    let effective_project_slug = project_slug;
+    let effective_project_name = project_name;
+
+    if (mode === 'forge' && (project_id === THE_FORGE_ID || project_slug === THE_FORGE_SLUG)) {
+      // Get current context to preserve existing project
+      const currentCtx = await db.query<UserContext>(
+        `SELECT project_id, project_slug, project_name FROM dev_user_context
+         WHERE user_id = $1 AND pc_tag_norm = normalize_pc_tag($2) AND ended_at IS NULL
+         ORDER BY started_at DESC LIMIT 1`,
+        [user_id, pc_tag]
+      );
+      const currentRows = Array.isArray(currentCtx.data) ? currentCtx.data : [];
+      const existing = currentRows[0];
+
+      if (existing?.project_id) {
+        effective_project_id = existing.project_id;
+        effective_project_slug = existing.project_slug;
+        effective_project_name = existing.project_name;
+        guardrail_applied = true;
+        console.log('[Context API] GUARDRAIL: Blocked forge project override, keeping:', existing.project_slug);
+      }
+    }
+
+
 
     // ATOMIC context flip using CTE
     // Ensures only one open segment per (user_id, pc_tag_norm) at any time
@@ -180,9 +212,9 @@ export async function POST(request: NextRequest) {
         pc_tag,
         pc_tag_raw || 'dashboard',
         mode,
-        project_id || null,
-        project_slug || null,
-        project_name || null,
+        effective_project_id || null,
+        effective_project_slug || null,
+        effective_project_name || null,
         dev_team || null,
         source,
         event_type,
@@ -210,9 +242,9 @@ export async function POST(request: NextRequest) {
         null,
         JSON.stringify({
           mode,
-          project_id: project_id || null,
-          project_slug: project_slug || null,
-          project_name: project_name || null,
+          project_id: effective_project_id || null,
+          project_slug: effective_project_slug || null,
+          project_name: effective_project_name || null,
           pc_tag: pc_tag,  // Include for ops-9200 context resolution
           user_id: user_id,
           route: meta?.route || null,
@@ -233,6 +265,7 @@ export async function POST(request: NextRequest) {
       success: true,
       context: newContext,
       toast: toastMessage,
+      guardrail_applied,
     });
   } catch (error) {
     console.error('[Context API] POST error:', error);
