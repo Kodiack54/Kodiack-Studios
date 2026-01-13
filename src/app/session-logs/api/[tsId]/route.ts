@@ -44,8 +44,9 @@ export async function GET(
         .ilike('id', `${partialId}%`)
         .limit(1);
 
-      if (blocks && blocks.length > 0) {
-        blockId = (blocks[0] as { id: string }).id;
+      const blockList = blocks as Array<{ id: string }> | null;
+      if (blockList && blockList.length > 0) {
+        blockId = blockList[0].id;
       }
     }
 
