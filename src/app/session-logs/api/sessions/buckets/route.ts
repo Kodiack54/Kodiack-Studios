@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 const ITEM_TABLES = [
   "dev_ai_todos",
-  "dev_ai_bugs", 
+  "dev_ai_bugs",
   "dev_ai_knowledge",
   "dev_ai_docs",
   "dev_ai_journal",
@@ -15,45 +15,38 @@ const ITEM_TABLES = [
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const workspace = searchParams.get("workspace");
+    // 1. Session counts from dev_session_logs (Chad's output)
+    const { data: sessions } = await db.from("dev_session_logs").select("status, created_at");
 
-    // 1. Session counts (Chad's work)
-    let sessionQuery = db.from("dev_ai_sessions").select("status, started_at");
-    if (workspace) {
-      sessionQuery = sessionQuery.eq("workspace", workspace);
-    }
-    const { data: sessions } = await sessionQuery;
-    
     const sessionList = Array.isArray(sessions) ? sessions : [];
     const now = new Date();
     const day = 24 * 60 * 60 * 1000;
-    
+
     // 5-stage session lifecycle: active → processed → extracted → cleaned → archived
     let activeSessions = 0, processedSessions = 0, extractedSessions = 0, cleanedSessions = 0, archivedSessions = 0, last24h = 0;
     for (const s of sessionList) {
       const status = (s as Record<string, unknown>).status as string;
-      const startedAt = (s as Record<string, unknown>).started_at as string;
+      const createdAt = (s as Record<string, unknown>).created_at as string;
       if (status === "active") activeSessions++;
       else if (status === "processed") processedSessions++;
       else if (status === "extracted") extractedSessions++;
       else if (status === "cleaned") cleanedSessions++;
       else if (status === "archived") archivedSessions++;
-      if (startedAt) {
-        const startTime = new Date(startedAt).getTime();
+      if (createdAt) {
+        const startTime = new Date(createdAt).getTime();
         if (now.getTime() - startTime < day) last24h++;
       }
     }
 
     // 2. Item counts by status using raw SQL
     let totalFlagged = 0, totalPending = 0, totalFinal = 0;
-    
+
     for (const table of ITEM_TABLES) {
       try {
         const flaggedResult = await db.query<{ count: string }>(`SELECT COUNT(*) as count FROM ${table} WHERE status = 'flagged'`);
         const pendingResult = await db.query<{ count: string }>(`SELECT COUNT(*) as count FROM ${table} WHERE status = 'pending'`);
         const finalResult = await db.query<{ count: string }>(`SELECT COUNT(*) as count FROM ${table} WHERE status NOT IN ('flagged', 'pending')`);
-        
+
         totalFlagged += parseInt((flaggedResult.data as { count: string }[])?.[0]?.count || "0", 10);
         totalPending += parseInt((pendingResult.data as { count: string }[])?.[0]?.count || "0", 10);
         totalFinal += parseInt((finalResult.data as { count: string }[])?.[0]?.count || "0", 10);
@@ -93,7 +86,7 @@ export async function GET(request: NextRequest) {
         flagged: totalFlagged,
         pending: totalPending,
         last_24h: last24h,
-        last_session: sessionList.length > 0 ? (sessionList[0] as Record<string, unknown>).started_at : null,
+        last_session: sessionList.length > 0 ? (sessionList[0] as Record<string, unknown>).created_at : null,
       },
     });
   } catch (error) {
