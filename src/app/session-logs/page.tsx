@@ -421,15 +421,15 @@ function SessionRow({ session }: { session: Session }) {
         <span className="text-gray-500 font-mono shrink-0">{time}</span>
       </div>
       <div className="flex items-center justify-between mt-1">
-        <div className="flex items-center gap-2 truncate">
-          <span className="text-gray-400 truncate">
-            {projectDisplay}
+        <div className="flex items-center gap-1.5">
+          {/* Mode badge first - fixed width for symmetry */}
+          <span className={`w-14 text-center py-0.5 rounded text-[10px] ${modeColors[modeDisplay.toLowerCase()] || 'bg-gray-600/50 text-gray-300'}`}>
+            {modeDisplay || 'unknown'}
           </span>
-          {modeDisplay && (
-            <span className={`px-1.5 py-0.5 rounded text-[10px] ${modeColors[modeDisplay.toLowerCase()] || 'bg-gray-600/50 text-gray-300'}`}>
-              {modeDisplay}
-            </span>
-          )}
+          {/* Project badge - fixed width for symmetry */}
+          <span className="w-14 text-center py-0.5 rounded text-[10px] bg-gray-600/50 text-gray-300 truncate">
+            {projectDisplay.length > 8 ? projectDisplay.slice(0, 7) + '…' : projectDisplay}
+          </span>
         </div>
         <span className={`px-1.5 py-0.5 rounded text-[10px] ${statusColors[session.status || 'active']}`}>
           {session.status || 'active'}
