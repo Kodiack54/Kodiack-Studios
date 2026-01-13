@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       user_id,
       mode,
       project_slug,
+      about_project_slug,  // For forge: what project user was thinking about
       meta
     } = body;
 

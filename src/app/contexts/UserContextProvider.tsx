@@ -109,6 +109,7 @@ interface SetContextParams {
   project_id?: string | null;
   project_slug?: string | null;
   project_name?: string | null;
+  about_project_slug?: string;  // For forge: what project user was thinking about
   dev_team?: string | null;
   source: ContextSource;
   event_type?: EventType;
@@ -152,6 +153,9 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   // Save work context before entering Forge/Planning (to restore on leave)
   // Using refs instead of state to avoid effect re-trigger loops
   const savedWorkContextRef = useRef<{ mode: ContextMode; project: StickyProject | null } | null>(null);
+
+  // Track last non-forge parent project for about_project_slug capture
+  const lastParentProjectRef = useRef<StickyProject | null>(null);
 
   // Guard to prevent immediate override after restore
   const justRestoredRef = useRef<number>(0);
@@ -322,6 +326,13 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, resolvedMode, effectiveProject]);
 
+  // Track last non-forge parent project for about_project_slug capture
+  useEffect(() => {
+    if (stickyProject && stickyProject.slug !== 'the-forge') {
+      lastParentProjectRef.current = stickyProject;
+    }
+  }, [stickyProject]);
+
   // Track previous work mode (PROJECT or SUPPORT) when switching to Forge/Planning
   useEffect(() => {
     if (context && (context.mode === 'worklog' || context.mode === 'support')) {
@@ -383,6 +394,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
           event_type: params.event_type || 'flip',
           meta: params.meta || { route: pathname },
           ...params,
+          about_project_slug: params.about_project_slug,
         }),
       });
 
@@ -626,6 +638,9 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     }
 
     if (hasChanged) {
+      // Capture about_project_slug for forge mode
+      const aboutProject = resolvedMode === 'forge' ? lastParentProjectRef.current?.slug : undefined;
+
       console.log('[UserContext] Context flip:', {
         projectId: currentProjectId,
         projectSlug: effectiveProject?.slug,
@@ -641,6 +656,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         project_id: currentProjectId,
         project_slug: effectiveProject?.slug || null,
         project_name: effectiveProject?.name || null,
+        about_project_slug: aboutProject,
         source: 'autoflip',
         event_type: 'flip',
         meta: {
