@@ -33,27 +33,27 @@ export async function GET(
   try {
     const { tsId } = await params;
 
-    // Handle WB-prefixed IDs (first 8 chars of UUID)
-    // or direct UUID lookups
-    let blockId = tsId;
-    if (tsId.startsWith('WB-')) {
-      // Search by partial ID match
-      const partialId = tsId.replace('WB-', '');
-      const { data: blocks } = await db.from('dev_worklog_blocks')
-        .select('id')
-        .ilike('id', `${partialId}%`)
-        .limit(1);
+    // Handle TS-prefixed IDs (TS101529, etc.) or direct UUID lookups
+    let data = null;
+    let error = null;
 
-      const blockList = blocks as Array<{ id: string }> | null;
-      if (blockList && blockList.length > 0) {
-        blockId = blockList[0].id;
-      }
+    if (tsId.startsWith('TS')) {
+      // Look up by ts_id column
+      const result = await db.from('dev_worklog_blocks')
+        .select('*')
+        .eq('ts_id', tsId)
+        .single();
+      data = result.data;
+      error = result.error;
+    } else {
+      // Direct UUID lookup
+      const result = await db.from('dev_worklog_blocks')
+        .select('*')
+        .eq('id', tsId)
+        .single();
+      data = result.data;
+      error = result.error;
     }
-
-    const { data, error } = await db.from('dev_worklog_blocks')
-      .select('*')
-      .eq('id', blockId)
-      .single();
 
     if (error || !data) {
       return NextResponse.json({
@@ -95,13 +95,13 @@ export async function GET(
     const windowEnd = new Date(block.window_end);
     const durationHours = (windowEnd.getTime() - windowStart.getTime()) / (1000 * 60 * 60);
 
-    // Generate ts_id for consistency
-    const generatedTsId = `WB-${block.id.slice(0, 8)}`;
+    // Use real ts_id from database
+    const blockTsId = (block as unknown as { ts_id?: string }).ts_id || `TS${block.id.slice(0, 6)}`;
 
     return NextResponse.json({
       success: true,
       worklog: {
-        ts_id: generatedTsId,
+        ts_id: blockTsId,
         block_id: block.id,
         mode: block.lane || block.mode, // lane is worklog/forge/planning (what UI calls "mode")
         source_type: block.mode, // mode is internal/external

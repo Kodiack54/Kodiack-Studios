@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     // Build base query from Susan's worklog blocks table
     let query = db.from('dev_worklog_blocks')
-      .select('id, user_id, pc_tag, mode, lane, project_id, project_slug, window_start, window_end, session_ids, message_count, cleaned_at, clean_version, created_at');
+      .select('id, ts_id, user_id, pc_tag, mode, lane, project_id, project_slug, window_start, window_end, session_ids, message_count, cleaned_at, clean_version, created_at');
 
     // Filter by lane (worklog/forge/planning) - this is what UI calls "mode"
     if (mode) query = query.eq('lane', mode);
@@ -54,9 +54,9 @@ export async function GET(request: NextRequest) {
         ? (windowEnd.getTime() - windowStart.getTime()) / (1000 * 60 * 60)
         : 3; // Default 3 hours
 
-      // Generate ts_id from block id (first 8 chars) for URL routing
+      // Use the real ts_id from the database (TS101529, TS101530, etc.)
       const blockId = block.id as string;
-      const tsId = `WB-${blockId.slice(0, 8)}`;
+      const tsId = block.ts_id as string || `TS${blockId.slice(0, 6)}`;
 
       // Session count from session_ids array
       const sessionIds = block.session_ids as string[] | null;
