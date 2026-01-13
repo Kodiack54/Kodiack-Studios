@@ -157,10 +157,11 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
   const justRestoredRef = useRef<number>(0);
 
   // Track last context write for heartbeat
-  const lastWriteRef = useRef<{ time: number; projectId: string | null; mode: ContextMode }>({
+  const lastWriteRef = useRef<{ time: number; projectId: string | null; mode: ContextMode; pathname: string | null }>({
     time: 0,
     projectId: null,
     mode: 'worklog',
+    pathname: null,
   });
 
   // Ref for userId so heartbeat can access it without effect dependency
@@ -199,6 +200,16 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       setPcTag('studio-terminals');
       userIdRef.current = devUser.id; // Set ref immediately
       console.log('[UserContext] Bootstrap set userId + ref:', devUser.id);
+      
+      // FIX: Bootstrap stickyProject to Studios Platform if null
+      if (!stickyProject) {
+        console.log('[UserContext] Bootstrap: Setting default stickyProject to Studios Platform');
+        setStickyProjectState({
+          id: STUDIOS_PLATFORM_ID,
+          slug: STUDIOS_PLATFORM_SLUG,
+          name: STUDIOS_PLATFORM_NAME,
+        });
+      }
     }
   }, []);
 
@@ -384,6 +395,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
           time: Date.now(),
           projectId: params.project_id || null,
           mode: params.mode,
+          pathname: pathname,
         };
         return true;
       } else {
@@ -456,6 +468,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
         time: Date.now(),
         projectId: restoreProject?.id || null,
         mode: restoreMode,
+        pathname: pathname,
       };
 
       // Update heartbeatDataRef to ensure heartbeat uses correct values immediately
@@ -602,7 +615,8 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
     const currentProjectId = effectiveProject?.id || null;
     const modeChanged = resolvedMode !== lastWriteRef.current.mode;
     const projectChanged = currentProjectId !== lastWriteRef.current.projectId;
-    const hasChanged = modeChanged || projectChanged;
+    const routeChanged = pathname !== lastWriteRef.current.pathname;
+    const hasChanged = modeChanged || projectChanged || routeChanged;
 
     // Passive routes only block mode-only flips - project changes from dropdown always go through
     const isPassiveRoute = pathname && PASSIVE_ROUTES.some(route => pathname.startsWith(route));
@@ -676,7 +690,7 @@ export function UserContextProvider({ children }: { children: ReactNode }) {
       // Skip if no user, tab hidden, or recent write
       if (!currentUserId) return;
       if (document.hidden) return;
-      if (elapsed < HEARTBEAT_INTERVAL) return;
+      // Elapsed check moved to throttle logic below
 
       // Skip heartbeat writes on passive routes (Operations is read-only - never writes context)
       const currentPathname = data.pathname;
