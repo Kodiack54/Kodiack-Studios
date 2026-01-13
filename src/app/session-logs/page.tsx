@@ -390,7 +390,16 @@ function SessionRow({ session }: { session: Session }) {
   // Get project display name (prefer name over slug)
   const projectDisplay = session.project_name ? session.project_name : (session.project_slug && session.project_slug !== 'unassigned'
     ? session.project_slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-    : session.mode || 'Unrouted');
+    : 'Unrouted');
+
+  // Mode badge (worklog/forge/planning)
+  const modeDisplay = session.mode || '';
+  const modeColors: Record<string, string> = {
+    worklog: 'bg-blue-600/50 text-blue-300',
+    forge: 'bg-purple-600/50 text-purple-300',
+    planning: 'bg-yellow-600/50 text-yellow-300',
+    support: 'bg-green-600/50 text-green-300',
+  };
 
   // Source type badge colors
   const sourceBadge = isExternal
@@ -416,8 +425,10 @@ function SessionRow({ session }: { session: Session }) {
           <span className="text-gray-400 truncate">
             {projectDisplay}
           </span>
-          {sourceSubtext && (
-            <span className="text-gray-600 font-mono text-[10px]">{sourceSubtext}</span>
+          {modeDisplay && (
+            <span className={`px-1.5 py-0.5 rounded text-[10px] ${modeColors[modeDisplay.toLowerCase()] || 'bg-gray-600/50 text-gray-300'}`}>
+              {modeDisplay}
+            </span>
           )}
         </div>
         <span className={`px-1.5 py-0.5 rounded text-[10px] ${statusColors[session.status || 'active']}`}>
